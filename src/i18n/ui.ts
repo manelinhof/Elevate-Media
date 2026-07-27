@@ -22,6 +22,7 @@ export const ui = {
     'lang.switch': 'English',
 
     'home.heading': 'Filmagem aérea profissional', // TODO(pt-review)
+    'home.tagline': 'Imagens aéreas cinematográficas, em qualquer lugar.', // TODO(pt-review)
     'home.empty': 'Ainda não há projetos publicados nesta categoria.',
 
     'work.back': 'Voltar aos trabalhos',
@@ -46,6 +47,7 @@ export const ui = {
     'lang.switch': 'Português',
 
     'home.heading': 'Professional aerial cinematography',
+    'home.tagline': 'Cinematic aerial footage, anywhere.',
     'home.empty': 'No projects published in this category yet.',
 
     'work.back': 'Back to work',

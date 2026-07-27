@@ -1,0 +1,98 @@
+---
+import type { Project } from '../lib/projects';
+import { mediaUrl } from '../data/site';
+import { useTranslations } from '../i18n/utils';
+import type { Lang } from '../i18n/ui';
+
+interface Props {
+  project: Project;
+  lang: Lang;
+  mediaBase: string;
+}
+
+const { project, lang, mediaBase } = Astro.props;
+const t = useTranslations(lang);
+const posterSrc = mediaUrl(mediaBase, project.poster);
+const loopSrc = mediaUrl(mediaBase, project.loop);
+---
+
+<!--
+  Same poster→loop behavior as grid tiles (respects prefers-reduced-motion
+  and saveData via motion-prefs.ts), but the loop can start immediately on
+  load instead of waiting for an IntersectionObserver — the hero is always
+  in the initial viewport.
+-->
+<section class="hero">
+  <div class="hero__media">
+    <img class="hero__poster" src={posterSrc} alt="" loading="eager" decoding="async" />
+    <video class="hero__loop" data-src={loopSrc} muted playsinline loop preload="none"></video>
+    <div class="hero__scrim"></div>
+  </div>
+  <div class="hero__content">
+    <h1>{t('home.heading')}</h1>
+    <p class="hero__tagline">{t('home.tagline')}</p>
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    min-height: 90vh;
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+  }
+  .hero__media {
+    position: absolute;
+    inset: 0;
+  }
+  .hero__poster,
+  .hero__loop {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .hero__loop {
+    opacity: 0;
+    transition: opacity 400ms ease;
+  }
+  .hero__loop.is-playing {
+    opacity: 1;
+  }
+  .hero__scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.05) 65%);
+  }
+  .hero__content {
+    position: relative;
+    z-index: 1;
+    padding: 3rem 1.5rem;
+    color: #fff;
+    max-width: 900px;
+  }
+  .hero__content h1 {
+    color: #fff;
+  }
+  .hero__tagline {
+    margin: 0.75rem 0 0;
+    font-size: clamp(1rem, 0.75rem + 1vw, 1.35rem);
+    color: rgba(255, 255, 255, 0.85);
+    max-width: 40ch;
+  }
+</style>
+
+<script>
+  import { shouldAutoplay } from '../lib/motion-prefs';
+
+  if (shouldAutoplay()) {
+    const video = document.querySelector<HTMLVideoElement>('.hero__loop');
+    if (video?.dataset.src) {
+      video.src = video.dataset.src;
+      video.play().catch(() => {});
+      video.classList.add('is-playing');
+    }
+  }
+</script>
