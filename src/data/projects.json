@@ -24,5 +24,57 @@
     },
     "publishedAt": "2026-01-01",
     "featured": false
+  },
+  {
+    "slug": "final",
+    "category": "real-estate",
+    "title": { "pt": "TODO", "en": "TODO" },
+    "poster": "projects/final/poster.jpg",
+    "loop": "projects/final/loop.mp4",
+    "reel": {
+      "sd": "projects/final/reel-720p.mp4",
+      "hd": "projects/final/reel-1080p.mp4"
+    },
+    "publishedAt": "2026-07-27",
+    "featured": false
+  },
+  {
+    "slug": "gx013060-stabilized-1-1-prob4",
+    "category": "real-estate",
+    "title": { "pt": "TODO", "en": "TODO" },
+    "poster": "projects/gx013060-stabilized-1-1-prob4/poster.jpg",
+    "loop": "projects/gx013060-stabilized-1-1-prob4/loop.mp4",
+    "reel": {
+      "sd": "projects/gx013060-stabilized-1-1-prob4/reel-720p.mp4",
+      "hd": "projects/gx013060-stabilized-1-1-prob4/reel-1080p.mp4"
+    },
+    "publishedAt": "2026-07-27",
+    "featured": false
+  },
+  {
+    "slug": "melro",
+    "category": "events",
+    "title": { "pt": "TODO", "en": "TODO" },
+    "poster": "projects/melro/poster.jpg",
+    "loop": "projects/melro/loop.mp4",
+    "reel": {
+      "sd": "projects/melro/reel-720p.mp4",
+      "hd": "projects/melro/reel-1080p.mp4"
+    },
+    "publishedAt": "2026-07-27",
+    "featured": false
+  },
+  {
+    "slug": "atrium-4k-16-9",
+    "category": "events",
+    "title": { "pt": "TODO", "en": "TODO" },
+    "poster": "projects/atrium-4k-16-9/poster.jpg",
+    "loop": "projects/atrium-4k-16-9/loop.mp4",
+    "reel": {
+      "sd": "projects/atrium-4k-16-9/reel-720p.mp4",
+      "hd": "projects/atrium-4k-16-9/reel-1080p.mp4"
+    },
+    "publishedAt": "2026-07-27",
+    "featured": false
   }
 ]

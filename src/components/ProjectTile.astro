@@ -7,9 +7,14 @@ interface Props {
   project: Project;
   lang: Lang;
   mediaBase: string;
+  // Set by the cluster layout (src/pages/[lang]/index.astro) when this tile
+  // is inside the slowly-rotating cluster wrapper. Applies a counter-
+  // rotation so the tile's own content stays upright while its position
+  // orbits with the parent — see the wrapper's `.tile-position` styling.
+  spinning?: boolean;
 }
 
-const { project, lang, mediaBase } = Astro.props;
+const { project, lang, mediaBase, spinning } = Astro.props;
 const title = project.title[lang];
 const posterSrc = mediaUrl(mediaBase, project.poster);
 const loopSrc = mediaUrl(mediaBase, project.loop);
@@ -20,7 +25,7 @@ const loopSrc = mediaUrl(mediaBase, project.loop);
   silent loop; the full reel loads only on click (the /work/[slug] page).
   Any change that autoplays full reels here is a regression — CLAUDE.md.
 -->
-<a class="tile" href={`/${lang}/work/${project.slug}`}>
+<a class:list={['tile', { 'tile--spin': spinning }]} href={`/${lang}/work/${project.slug}`}>
   <img
     class="tile__poster"
     src={posterSrc}
@@ -57,6 +62,38 @@ const loopSrc = mediaUrl(mediaBase, project.loop);
   .tile__loop.is-playing {
     opacity: 1;
   }
+  /* Cluster mode: the wrapper (.tile-position, in index.astro) handles
+     absolute placement and slowly orbits with the whole cluster. This
+     counter-rotates at the exact same speed in the opposite direction —
+     via the --cluster-spin-duration custom property inherited from the
+     cluster container — so the tile's own poster/video stays upright
+     while its position orbits. prefers-reduced-motion already collapses
+     all animation-duration globally (see global.css), so this is
+     automatically neutralized for those users.
+
+     Gated behind the same min-width: 960px breakpoint as .tile-position
+     in index.astro — below that, .tile-position has no positioning of its
+     own (mobile stays the plain grid), so this must not spin either, or
+     tiles would visibly rotate in place with no compensating parent
+     rotation. */
+  @media (min-width: 960px) {
+    .tile--spin {
+      width: 100%;
+      height: 100%;
+      aspect-ratio: unset;
+      animation: tile-counter-spin var(--cluster-spin-duration, 180s) linear infinite;
+      transform-origin: center center;
+    }
+  }
+  @keyframes tile-counter-spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(-360deg);
+    }
+  }
+
   .tile__title {
     position: absolute;
     left: 0;

@@ -9,3 +9,8 @@ dist
 
 # Raw/rendered footage lives in R2, never in git.
 media-src/
+
+# Local-only stand-in for R2 during dev — matches PUBLIC_MEDIA_BASE in
+# wrangler.toml, served by Astro's static file handling so real posters/
+# videos render without needing R2 set up. Never commit media here either.
+public/media-placeholder/

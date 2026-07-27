@@ -3,6 +3,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import Hero from '../../components/Hero.astro';
 import ProjectTile from '../../components/ProjectTile.astro';
 import { getProjects } from '../../lib/projects';
+import { computeClusterLayout } from '../../lib/cluster-layout';
 import { activeCategories, BRAND } from '../../data/site';
 import { isValidLang, useTranslations } from '../../i18n/utils';
 import type { Lang } from '../../i18n/ui';
@@ -18,6 +19,13 @@ const projects = getProjects();
 const categories = activeCategories(projects);
 const mediaBase = Astro.locals.runtime.env.PUBLIC_MEDIA_BASE;
 const heroProject = projects.find((p) => p.featured) ?? projects[0];
+
+// Below this many projects, a scattered cluster just looks like empty
+// space with a couple of rectangles in it — keep the plain grid until
+// there's enough real work (via ingest.sh) to make it worth scattering.
+const MIN_PROJECTS_FOR_CLUSTER = 6;
+const useCluster = projects.length >= MIN_PROJECTS_FOR_CLUSTER;
+const clusterPositions = useCluster ? computeClusterLayout(projects.length) : [];
 
 const services = [
   t('about.services.fpv'),
@@ -39,8 +47,6 @@ const equipment = [
 
 <BaseLayout lang={lang} title={t('home.heading')}>
   <section id="home">
-    {heroProject && <Hero project={heroProject} lang={lang} mediaBase={mediaBase} />}
-
     <div class="content">
       {categories.length > 0 && (
         <ul class="categories">
@@ -53,13 +59,21 @@ const equipment = [
       {projects.length === 0 ? (
         <p>{t('home.empty')}</p>
       ) : (
-        <div class="grid">
-          {projects.map((project) => (
-            <ProjectTile project={project} lang={lang} mediaBase={mediaBase} />
-          ))}
+        <div class:list={['grid', { cluster: useCluster }]}>
+          {projects.map((project, i) =>
+            useCluster ? (
+              <div class="tile-position" style={clusterPositions[i]}>
+                <ProjectTile project={project} lang={lang} mediaBase={mediaBase} spinning />
+              </div>
+            ) : (
+              <ProjectTile project={project} lang={lang} mediaBase={mediaBase} />
+            )
+          )}
         </div>
       )}
     </div>
+
+    {heroProject && <Hero project={heroProject} lang={lang} mediaBase={mediaBase} />}
   </section>
 
   <section id="about">
@@ -123,6 +137,45 @@ const equipment = [
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 2.5rem 1.5rem;
+  }
+
+  /* Scattered cipher.tv-style cluster — desktop only, and only once there
+     are enough projects (see MIN_PROJECTS_FOR_CLUSTER) to look intentional
+     rather than sparse. Below this width/count, the plain grid above
+     applies unchanged — same proven, data-conscious mobile layout.
+
+     The whole cluster slowly rotates as one rigid disc (cluster-spin);
+     each tile counter-rotates at the same speed via --cluster-spin-duration
+     (ProjectTile.astro's .tile--spin, inherited through this custom
+     property) so its own poster/video stays upright while only its
+     *position* orbits. prefers-reduced-motion already forces all
+     animation-duration to ~0 globally (see global.css), so this is
+     automatically disabled for those users — no extra gating needed. */
+  @media (min-width: 960px) {
+    .grid.cluster {
+      display: block;
+      position: relative;
+      height: 85vmin;
+      --cluster-spin-duration: 180s;
+      animation: cluster-spin var(--cluster-spin-duration) linear infinite;
+      transform-origin: center center;
+    }
+    .grid.cluster .tile-position {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: var(--w);
+      height: var(--h);
+      transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y)));
+    }
+  }
+  @keyframes cluster-spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   #about .intro {
