@@ -27,13 +27,26 @@ const year = new Date().getFullYear();
   </head>
   <body>
     <header class="site-header">
-      <a class="site-header__brand" href={homeHref}>{BRAND.displayName}</a>
-      <nav class="site-header__nav">
-        <a href={`${homeHref}#home`} data-section="home">{t('nav.home')}</a>
-        <a href={`${homeHref}#about`} data-section="about">{t('nav.about')}</a>
-        <a href={`${homeHref}#services`} data-section="services">{t('nav.services')}</a>
-        <a href={otherPath}>{t('lang.switch')}</a>
-      </nav>
+      <!--
+        "Home" is no longer a nav destination — clicking the brand/logo
+        does that job instead (bare page-root navigation always lands at
+        scroll position 0). The nav.home i18n key stays, repurposed as
+        this link's accessible name.
+      -->
+      <a class="site-header__brand" href={homeHref} aria-label={t('nav.home')}>
+        <img class="site-header__logo" src="/logo.png" alt="" width="32" height="32" />
+        <span class="site-header__wordmark">{BRAND.displayName}</span>
+      </a>
+
+      <div class="site-header__center">
+        <a class="nav-link" href={`${homeHref}#work`} data-section="work">{t('nav.work')}</a>
+      </div>
+
+      <div class="site-header__right">
+        <a class="nav-link" href={`${homeHref}#services`} data-section="services">{t('nav.services')}</a>
+        <a class="nav-link" href={`${homeHref}#about`} data-section="about">{t('nav.about')}</a>
+        <a class="nav-link" href={otherPath}>{t('lang.switch')}</a>
+      </div>
     </header>
     <main>
       <slot />
@@ -47,38 +60,122 @@ const year = new Date().getFullYear();
 </html>
 
 <style>
+  /* Three-zone header: brand left, Works centered, Services/About/lang
+     right. Grid (not flex + space-between) is what actually guarantees the
+     center item stays centered regardless of how wide the two side groups
+     are. */
   .site-header {
     position: sticky;
     top: 0;
     z-index: 10;
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
     align-items: center;
+    gap: 1.5rem;
     padding: 1.25rem 1.5rem;
     background: var(--bg);
     border-bottom: 1px solid var(--border);
   }
+
   .site-header__brand {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    justify-self: start;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     text-decoration: none;
+    color: var(--fg);
   }
-  .site-header__nav {
+  .site-header__logo {
+    display: block;
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    transition: transform 600ms ease;
+  }
+  /* A drone-rotor mark gets a rotor spin on hover — a small signature
+     detail tied to the logo's own shape, not decoration for its own sake.
+     Neutralized automatically under prefers-reduced-motion (global.css). */
+  .site-header__brand:hover .site-header__logo {
+    transform: rotate(360deg);
+  }
+
+  .site-header__center {
+    justify-self: center;
+  }
+  .site-header__right {
     display: flex;
+    align-items: center;
     gap: 1.75rem;
+    justify-self: end;
   }
-  .site-header__nav a {
+
+  /* Narrow viewports: tighten spacing so the header fits without forcing
+     horizontal page scroll. This pass is a desktop-focused polish (hover
+     animations don't really apply on touch anyway); a fuller mobile nav
+     treatment (e.g. a collapsed menu) is a reasonable follow-up, not done
+     here — this is just enough to not visually break small screens. */
+  @media (max-width: 640px) {
+    .site-header {
+      gap: 0.75rem;
+      padding: 1rem;
+    }
+    .site-header__logo {
+      width: 24px;
+      height: 24px;
+    }
+    .site-header__right {
+      gap: 0.85rem;
+    }
+    .nav-link {
+      font-size: 0.7rem;
+    }
+  }
+
+  /* Hover and active share one visual language (the underline), rather
+     than hover getting one treatment and active another. */
+  .nav-link {
+    position: relative;
+    display: inline-block;
+    padding-block: 0.25rem;
     text-decoration: none;
     color: var(--muted);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     font-size: 0.85rem;
+    transition:
+      color 200ms ease,
+      transform 200ms ease,
+      letter-spacing 200ms ease;
   }
-  .site-header__nav a.active {
+  .nav-link::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    background: var(--class-b);
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform 250ms ease;
+  }
+  .nav-link:hover {
+    color: var(--fg);
+    transform: translateY(-2px);
+    letter-spacing: 0.09em;
+  }
+  .nav-link:hover::after,
+  .nav-link.active::after {
+    transform: scaleX(1);
+  }
+  .nav-link.active {
     color: var(--class-b);
   }
+
   .site-footer {
     display: flex;
     flex-wrap: wrap;
@@ -101,18 +198,17 @@ const year = new Date().getFullYear();
 </style>
 
 <script>
-  // Scrollspy for the single-page nav (#home/#about/#services). No-ops
+  // Scrollspy for the single-page nav (#work/#about/#services). No-ops
   // safely on pages that don't have these section ids (work/[slug],
-  // gallery) — same defensive pattern as the motion-prefs-driven scripts.
-  const ids = ['home', 'about', 'services'];
+  // gallery) — same defensive pattern as the motion-prefs-driven scripts
+  // elsewhere in the codebase.
+  const ids = ['work', 'about', 'services'];
   const sections = ids
     .map((id) => document.getElementById(id))
     .filter((el): el is HTMLElement => el !== null);
 
   if (sections.length > 0) {
-    const navLinks = document.querySelectorAll<HTMLAnchorElement>(
-      '.site-header__nav a[data-section]'
-    );
+    const navLinks = document.querySelectorAll<HTMLAnchorElement>('.nav-link[data-section]');
 
     const setActive = (id: string) => {
       navLinks.forEach((link) => {
@@ -125,8 +221,6 @@ const year = new Date().getFullYear();
         const visible = entries
           .filter((entry) => entry.isIntersecting)
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        // If nothing crosses the band this tick, keep the last known-good
-        // active state rather than clearing it.
         if (visible) {
           const id = visible.target.id;
           setActive(id);

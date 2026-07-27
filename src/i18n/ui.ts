@@ -61,7 +61,7 @@ export const ui = {
   },
   en: {
     'nav.home': 'Home',
-    'nav.work': 'Work',
+    'nav.work': 'Works',
     'nav.about': 'About',
     'nav.services': 'Services',
     'lang.switch': 'Português',
