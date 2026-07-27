@@ -1,0 +1,28 @@
+[
+  {
+    "slug": "placeholder-one",
+    "category": "real-estate",
+    "title": { "pt": "Projeto de exemplo um", "en": "Placeholder project one" },
+    "poster": "projects/placeholder-one/poster.jpg",
+    "loop": "projects/placeholder-one/loop.mp4",
+    "reel": {
+      "sd": "projects/placeholder-one/reel-720p.mp4",
+      "hd": "projects/placeholder-one/reel-1080p.mp4"
+    },
+    "publishedAt": "2026-01-01",
+    "featured": false
+  },
+  {
+    "slug": "placeholder-two",
+    "category": "events",
+    "title": { "pt": "Projeto de exemplo dois", "en": "Placeholder project two" },
+    "poster": "projects/placeholder-two/poster.jpg",
+    "loop": "projects/placeholder-two/loop.mp4",
+    "reel": {
+      "sd": "projects/placeholder-two/reel-720p.mp4",
+      "hd": "projects/placeholder-two/reel-1080p.mp4"
+    },
+    "publishedAt": "2026-01-01",
+    "featured": false
+  }
+]

@@ -1,0 +1,37 @@
+{
+  "name": "portfolio-site",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "wrangler pages dev ./dist",
+    "deploy": "wrangler pages deploy ./dist",
+    "db:migrate": "wrangler d1 execute site-db --file=./schema.sql",
+    "check:i18n": "tsx ./scripts/check-i18n.ts",
+    "typecheck": "astro check"
+  },
+  "dependencies": {
+    "astro": "^5.1.0",
+    "@astrojs/cloudflare": "^12.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@astrojs/check": "^0.9.0",
+    "@cloudflare/workers-types": "^4.20250101.0",
+    "tsx": "^4.19.0",
+    "wrangler": "^3.100.0"
+  },
+  "allowScripts": {
+    "esbuild@0.27.7": true,
+    "esbuild@0.28.1": true,
+    "esbuild@0.25.12": true,
+    "esbuild@0.27.0": true,
+    "esbuild@0.17.19": true,
+    "sharp@0.34.5": true,
+    "sharp@0.33.5": true,
+    "workerd@1.20250718.0": true,
+    "workerd@1.20260114.0": true
+  }
+}

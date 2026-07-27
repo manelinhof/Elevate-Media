@@ -1,0 +1,71 @@
+---
+// Passcode gate is functional. The unlocked media listing below is a bare,
+// unstyled STUB — polish later. The actual token/passcode/cookie check
+// already happened in src/middleware.ts; by the time this page renders, an
+// invalid/revoked/expired token has already 404'd.
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { isValidLang, useTranslations } from '../../../i18n/utils';
+import type { Lang } from '../../../i18n/ui';
+import { mediaUrl } from '../../../data/site';
+
+const { lang: langParam, token } = Astro.params;
+if (!langParam || !isValidLang(langParam) || !token) {
+  return new Response('Not found', { status: 404 });
+}
+const lang = langParam as Lang;
+const t = useTranslations(lang);
+
+const errorParam = Astro.url.searchParams.get('error');
+const gallery = Astro.locals.gallery;
+
+interface MediaRow {
+  poster_key: string;
+  loop_key: string | null;
+  reel_sd_key: string;
+  reel_hd_key: string | null;
+}
+
+let media: MediaRow[] = [];
+const mediaBase = Astro.locals.runtime.env.PUBLIC_MEDIA_BASE;
+
+if (gallery) {
+  const { results } = await Astro.locals.runtime.env.SITE_DB.prepare(
+    'SELECT poster_key, loop_key, reel_sd_key, reel_hd_key FROM gallery_media WHERE gallery_id = ? ORDER BY position'
+  )
+    .bind(gallery.id)
+    .all<MediaRow>();
+  media = results;
+}
+---
+
+<BaseLayout lang={lang} title={t('gallery.passcodeHeading')}>
+  {!gallery && (
+    <section>
+      <h1>{t('gallery.passcodeHeading')}</h1>
+      {errorParam === 'passcode' && <p role="alert">{t('gallery.passcodeError')}</p>}
+      {errorParam === 'locked' && <p role="alert">{t('gallery.locked')}</p>}
+      <form method="post" action={`/api/gallery/${token}/verify`}>
+        <input type="hidden" name="lang" value={lang} />
+        <label>
+          {t('gallery.passcodeLabel')}
+          <input type="password" name="passcode" required />
+        </label>
+        <button type="submit">{t('gallery.passcodeSubmit')}</button>
+      </form>
+    </section>
+  )}
+
+  {gallery && (
+    <section>
+      <h1>{t('gallery.welcome')}</h1>
+      <ul class="gallery-media">
+        {media.map((item) => (
+          <li>
+            <img src={mediaUrl(mediaBase, item.poster_key)} alt="" width="320" height="180" />
+            <a href={mediaUrl(mediaBase, item.reel_sd_key)}>{t('work.watchHd')}</a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+</BaseLayout>
