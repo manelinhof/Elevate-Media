@@ -1,0 +1,32 @@
+---
+// STUB — open task 6 in CLAUDE.md: this page's full design isn't built yet.
+// It's functional (title + playable reel) but not the intended final layout.
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { getProjectBySlug } from '../../../lib/projects';
+import { mediaUrl } from '../../../data/site';
+import { isValidLang, useTranslations } from '../../../i18n/utils';
+import type { Lang } from '../../../i18n/ui';
+
+const { lang: langParam, slug } = Astro.params;
+if (!langParam || !isValidLang(langParam) || !slug) {
+  return new Response('Not found', { status: 404 });
+}
+const lang = langParam as Lang;
+const t = useTranslations(lang);
+
+const project = getProjectBySlug(slug);
+if (!project) {
+  return new Response(t('work.notFound'), { status: 404 });
+}
+
+const mediaBase = Astro.locals.runtime.env.PUBLIC_MEDIA_BASE;
+const sdSrc = mediaUrl(mediaBase, project.reel.sd);
+const hdSrc = mediaUrl(mediaBase, project.reel.hd);
+---
+
+<BaseLayout lang={lang} title={project.title[lang]}>
+  <a href={`/${lang}/`}>{t('work.back')}</a>
+  <h1>{project.title[lang]}</h1>
+  <video controls src={sdSrc}></video>
+  <p><a href={hdSrc}>{t('work.watchHd')}</a></p>
+</BaseLayout>

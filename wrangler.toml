@@ -1,0 +1,29 @@
+# Cloudflare Pages config. Resource names below (`site-db`, `site-media`,
+# and this project's own name) are brand-neutral on purpose — see CLAUDE.md.
+# Neither D1 nor R2 can be renamed in place, and the brand may change later,
+# so do not rename these to match "The Drone Ninja" / "Elevate Media".
+name = "portfolio-site"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "./dist"
+
+# Binding identifiers must be valid JS identifiers (accessed as env.SITE_DB /
+# env.SITE_MEDIA in code) and so use underscores/caps, even though the
+# underlying resource names stay literally "site-db" / "site-media".
+[[d1_databases]]
+binding = "SITE_DB"
+database_name = "site-db"
+# Open task 1: run `wrangler d1 create site-db` and paste the printed
+# database_id here.
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+[[r2_buckets]]
+binding = "SITE_MEDIA"
+bucket_name = "site-media"
+
+# Non-secret runtime config. Real secrets (GALLERY_HMAC_SECRET) are set via
+# `wrangler pages secret put` and never appear in this file or in git.
+[vars]
+SITE_URL = "http://localhost:4321"
+PUBLIC_MEDIA_BASE = "http://localhost:4321/media-placeholder"
+FROM_EMAIL = "hello@example.com"

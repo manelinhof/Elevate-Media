@@ -1,0 +1,56 @@
+/*
+ * Chrome is monochrome — colour is state, never decoration. The footage is
+ * the only saturated thing on screen. Do not add a color literal here beyond
+ * this grayscale ramp and the two accents below (--class-e, --class-b), and
+ * do not use those two ornamentally. See CLAUDE.md "Conventions".
+ */
+:root {
+  --bg: #0a0a0a;
+  --fg: #f2f2f2;
+  --surface: #171717;
+  --border: #2e2e2e;
+  --muted: #9a9a9a;
+
+  /* VFR sectional chart airspace conventions. Exactly two accents, both
+     state-only (e.g. gallery-protected badge, active nav item) — never a
+     third, never decorative. */
+  --class-e: #e6007e; /* magenta */
+  --class-b: #0033a0; /* blue */
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #fafafa;
+    --fg: #111111;
+    --surface: #ffffff;
+    --border: #dcdcdc;
+    --muted: #5a5a5a;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+a {
+  color: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

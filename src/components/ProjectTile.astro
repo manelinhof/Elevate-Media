@@ -1,0 +1,107 @@
+---
+import type { Project } from '../lib/projects';
+import { mediaUrl } from '../data/site';
+import type { Lang } from '../i18n/ui';
+
+interface Props {
+  project: Project;
+  lang: Lang;
+  mediaBase: string;
+}
+
+const { project, lang, mediaBase } = Astro.props;
+const title = project.title[lang];
+const posterSrc = mediaUrl(mediaBase, project.poster);
+const loopSrc = mediaUrl(mediaBase, project.loop);
+---
+
+<!--
+  Grid tiles never load the full reel. Poster → IntersectionObserver → short
+  silent loop; the full reel loads only on click (the /work/[slug] page).
+  Any change that autoplays full reels here is a regression — CLAUDE.md.
+-->
+<a class="tile" href={`/${lang}/work/${project.slug}`}>
+  <img
+    class="tile__poster"
+    src={posterSrc}
+    alt={title}
+    loading="lazy"
+    decoding="async"
+    width="640"
+    height="360"
+  />
+  <video class="tile__loop" data-src={loopSrc} muted playsinline loop preload="none"></video>
+  <span class="tile__title">{title}</span>
+</a>
+
+<style>
+  .tile {
+    position: relative;
+    display: block;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: var(--surface);
+    border: 1px solid var(--border);
+  }
+  .tile__poster,
+  .tile__loop {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .tile__loop {
+    opacity: 0;
+    transition: opacity 200ms ease;
+  }
+  .tile__loop.is-playing {
+    opacity: 1;
+  }
+  .tile__title {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 0.5rem 0.75rem;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.65));
+    color: #fff;
+    font-size: 0.875rem;
+  }
+</style>
+
+<script>
+  // Astro dedupes this script across every ProjectTile instance on the
+  // page, so this runs once and drives every tile with a single shared
+  // observer — not one IntersectionObserver per tile.
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const nav = navigator as Navigator & { connection?: { saveData?: boolean } };
+  const saveData = nav.connection?.saveData === true;
+
+  if (!reducedMotion && !saveData) {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const video = entry.target as HTMLVideoElement;
+          if (entry.isIntersecting) {
+            if (!video.src && video.dataset.src) {
+              video.src = video.dataset.src;
+            }
+            video.play().catch(() => {});
+            video.classList.add('is-playing');
+          } else {
+            video.pause();
+            video.classList.remove('is-playing');
+          }
+        }
+      },
+      { rootMargin: '200px' }
+    );
+
+    document.querySelectorAll<HTMLVideoElement>('.tile__loop').forEach((video) => {
+      observer.observe(video);
+    });
+  }
+  // If reduced-motion or saveData is set, `data-src` is never promoted to
+  // `src`, so the loop video is never fetched at all — not just paused.
+</script>

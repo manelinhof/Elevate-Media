@@ -1,0 +1,60 @@
+---
+import { BRAND } from '../data/site';
+import { useTranslations } from '../i18n/utils';
+import type { Lang } from '../i18n/ui';
+import '../styles/global.css';
+
+interface Props {
+  lang: Lang;
+  title: string;
+}
+
+const { lang, title } = Astro.props;
+const t = useTranslations(lang);
+const otherLang: Lang = lang === 'pt' ? 'en' : 'pt';
+const otherPath = Astro.url.pathname.replace(`/${lang}/`, `/${otherLang}/`);
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} — {BRAND.displayName}</title>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="site-header__brand" href={`/${lang}/`}>{BRAND.displayName}</a>
+      <nav class="site-header__nav">
+        <a href={`/${lang}/`}>{t('nav.home')}</a>
+        <a href={`/${lang}/services`}>{t('nav.services')}</a>
+        <a href={otherPath}>{t('lang.switch')}</a>
+      </nav>
+    </header>
+    <main>
+      <slot />
+    </main>
+  </body>
+</html>
+
+<style>
+  .site-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .site-header__brand {
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .site-header__nav {
+    display: flex;
+    gap: 1rem;
+  }
+  .site-header__nav a {
+    text-decoration: none;
+    color: var(--muted);
+  }
+</style>

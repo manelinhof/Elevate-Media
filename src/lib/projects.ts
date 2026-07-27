@@ -1,0 +1,44 @@
+import rawProjects from '../data/projects.json';
+
+export interface Project {
+  slug: string;
+  category: string;
+  title: { pt: string; en: string };
+  poster: string;
+  loop: string;
+  reel: { sd: string; hd: string };
+  publishedAt: string;
+  featured: boolean;
+}
+
+// Hand-rolled shape check rather than a validation library — the schema is
+// small and stable, and it's the owner's own ingest.sh output being pasted
+// in, not untrusted external input.
+function isProject(value: unknown): value is Project {
+  if (typeof value !== 'object' || value === null) return false;
+  const p = value as Record<string, unknown>;
+  const title = p.title as Record<string, unknown> | undefined;
+  const reel = p.reel as Record<string, unknown> | undefined;
+  return (
+    typeof p.slug === 'string' &&
+    typeof p.category === 'string' &&
+    typeof title?.pt === 'string' &&
+    typeof title?.en === 'string' &&
+    typeof p.poster === 'string' &&
+    typeof p.loop === 'string' &&
+    typeof reel?.sd === 'string' &&
+    typeof reel?.hd === 'string' &&
+    typeof p.publishedAt === 'string' &&
+    typeof p.featured === 'boolean'
+  );
+}
+
+const projects: Project[] = (rawProjects as unknown[]).filter(isProject);
+
+export function getProjects(): Project[] {
+  return projects;
+}
+
+export function getProjectBySlug(slug: string): Project | undefined {
+  return projects.find((p) => p.slug === slug);
+}
