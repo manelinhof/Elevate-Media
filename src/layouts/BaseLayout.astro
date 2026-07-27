@@ -15,8 +15,10 @@ const otherLang: Lang = lang === 'pt' ? 'en' : 'pt';
 const otherPath = Astro.url.pathname.replace(`/${lang}/`, `/${otherLang}/`);
 
 const homeHref = `/${lang}/`;
+const aboutHref = `/${lang}/about`;
 const servicesHref = `/${lang}/services`;
 const isHome = Astro.url.pathname === homeHref;
+const isAbout = Astro.url.pathname.startsWith(aboutHref);
 const isServices = Astro.url.pathname.startsWith(servicesHref);
 const year = new Date().getFullYear();
 ---
@@ -33,6 +35,7 @@ const year = new Date().getFullYear();
       <a class="site-header__brand" href={homeHref}>{BRAND.displayName}</a>
       <nav class="site-header__nav">
         <a href={homeHref} class:list={{ active: isHome }}>{t('nav.home')}</a>
+        <a href={aboutHref} class:list={{ active: isAbout }}>{t('nav.about')}</a>
         <a href={servicesHref} class:list={{ active: isServices }}>{t('nav.services')}</a>
         <a href={otherPath}>{t('lang.switch')}</a>
       </nav>
