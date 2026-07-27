@@ -15,11 +15,6 @@ const otherLang: Lang = lang === 'pt' ? 'en' : 'pt';
 const otherPath = Astro.url.pathname.replace(`/${lang}/`, `/${otherLang}/`);
 
 const homeHref = `/${lang}/`;
-const aboutHref = `/${lang}/about`;
-const servicesHref = `/${lang}/services`;
-const isHome = Astro.url.pathname === homeHref;
-const isAbout = Astro.url.pathname.startsWith(aboutHref);
-const isServices = Astro.url.pathname.startsWith(servicesHref);
 const year = new Date().getFullYear();
 ---
 
@@ -34,9 +29,9 @@ const year = new Date().getFullYear();
     <header class="site-header">
       <a class="site-header__brand" href={homeHref}>{BRAND.displayName}</a>
       <nav class="site-header__nav">
-        <a href={homeHref} class:list={{ active: isHome }}>{t('nav.home')}</a>
-        <a href={aboutHref} class:list={{ active: isAbout }}>{t('nav.about')}</a>
-        <a href={servicesHref} class:list={{ active: isServices }}>{t('nav.services')}</a>
+        <a href={`${homeHref}#home`} data-section="home">{t('nav.home')}</a>
+        <a href={`${homeHref}#about`} data-section="about">{t('nav.about')}</a>
+        <a href={`${homeHref}#services`} data-section="services">{t('nav.services')}</a>
         <a href={otherPath}>{t('lang.switch')}</a>
       </nav>
     </header>
@@ -53,10 +48,14 @@ const year = new Date().getFullYear();
 
 <style>
   .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 1.25rem 1.5rem;
+    background: var(--bg);
     border-bottom: 1px solid var(--border);
   }
   .site-header__brand {
@@ -100,3 +99,43 @@ const year = new Date().getFullYear();
     letter-spacing: 0.04em;
   }
 </style>
+
+<script>
+  // Scrollspy for the single-page nav (#home/#about/#services). No-ops
+  // safely on pages that don't have these section ids (work/[slug],
+  // gallery) — same defensive pattern as the motion-prefs-driven scripts.
+  const ids = ['home', 'about', 'services'];
+  const sections = ids
+    .map((id) => document.getElementById(id))
+    .filter((el): el is HTMLElement => el !== null);
+
+  if (sections.length > 0) {
+    const navLinks = document.querySelectorAll<HTMLAnchorElement>(
+      '.site-header__nav a[data-section]'
+    );
+
+    const setActive = (id: string) => {
+      navLinks.forEach((link) => {
+        link.classList.toggle('active', link.dataset.section === id);
+      });
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        // If nothing crosses the band this tick, keep the last known-good
+        // active state rather than clearing it.
+        if (visible) {
+          const id = visible.target.id;
+          setActive(id);
+          history.replaceState(null, '', `#${id}`);
+        }
+      },
+      { rootMargin: '-40% 0px -40% 0px', threshold: [0, 0.25, 0.5, 0.75, 1] }
+    );
+
+    sections.forEach((el) => observer.observe(el));
+  }
+</script>

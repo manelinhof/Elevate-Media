@@ -62,6 +62,14 @@
   box-sizing: border-box;
 }
 
+/* Single-page nav scrolls to #home/#about/#services. scroll-padding-top
+   keeps the sticky header (see BaseLayout.astro) from covering the top of
+   whichever section is jumped to. Disabled under reduced-motion below. */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
 html,
 body {
   margin: 0;
