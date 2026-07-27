@@ -1,4 +1,32 @@
 /*
+ * Self-hosted (not a Google Fonts runtime <link>) so there's no third-party
+ * network dependency at request time. Only the weights actually used are
+ * fetched: 500 (body/reading weight — there is no 400 file, so body sets
+ * font-weight: 500 explicitly), 600, and 700 (headings/emphasis).
+ */
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/barlow-condensed-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/barlow-condensed-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/barlow-condensed-700.woff2') format('woff2');
+}
+
+/*
  * Chrome is monochrome — colour is state, never decoration. The footage is
  * the only saturated thing on screen. Do not add a color literal here beyond
  * this grayscale ramp and the two accents below (--class-e, --class-b), and
@@ -16,6 +44,8 @@
      third, never decorative. */
   --class-e: #e6007e; /* magenta */
   --class-b: #0033a0; /* blue */
+
+  --font-sans: 'Barlow Condensed', system-ui, -apple-system, sans-serif;
 }
 
 @media (prefers-color-scheme: light) {
@@ -37,11 +67,46 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--fg);
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
+  font-weight: 500;
 }
 
 a {
   color: inherit;
+}
+
+/* One typeface family throughout — weight and case do the work, not a
+   second font. Headings/nav/labels get the bold all-caps treatment;
+   paragraph-length copy (none exists yet, but /services or an About
+   section may grow some) should stay normal case for readability. */
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+}
+
+h1 {
+  font-size: clamp(2.5rem, 1rem + 6vw, 5.5rem);
+}
+
+h2 {
+  font-size: clamp(1.75rem, 1rem + 3vw, 2.75rem);
+}
+
+.label {
+  display: inline-block;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.8rem;
+}
+
+button {
+  font-family: inherit;
 }
 
 @media (prefers-reduced-motion: reduce) {

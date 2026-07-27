@@ -13,6 +13,12 @@ const { lang, title } = Astro.props;
 const t = useTranslations(lang);
 const otherLang: Lang = lang === 'pt' ? 'en' : 'pt';
 const otherPath = Astro.url.pathname.replace(`/${lang}/`, `/${otherLang}/`);
+
+const homeHref = `/${lang}/`;
+const servicesHref = `/${lang}/services`;
+const isHome = Astro.url.pathname === homeHref;
+const isServices = Astro.url.pathname.startsWith(servicesHref);
+const year = new Date().getFullYear();
 ---
 
 <!doctype html>
@@ -24,16 +30,21 @@ const otherPath = Astro.url.pathname.replace(`/${lang}/`, `/${otherLang}/`);
   </head>
   <body>
     <header class="site-header">
-      <a class="site-header__brand" href={`/${lang}/`}>{BRAND.displayName}</a>
+      <a class="site-header__brand" href={homeHref}>{BRAND.displayName}</a>
       <nav class="site-header__nav">
-        <a href={`/${lang}/`}>{t('nav.home')}</a>
-        <a href={`/${lang}/services`}>{t('nav.services')}</a>
+        <a href={homeHref} class:list={{ active: isHome }}>{t('nav.home')}</a>
+        <a href={servicesHref} class:list={{ active: isServices }}>{t('nav.services')}</a>
         <a href={otherPath}>{t('lang.switch')}</a>
       </nav>
     </header>
     <main>
       <slot />
     </main>
+    <footer class="site-footer">
+      <span>{BRAND.displayName}</span>
+      <a href={BRAND.instagramUrl} target="_blank" rel="noopener noreferrer">Instagram</a>
+      <span class="site-footer__rights">© {year} {BRAND.displayName}</span>
+    </footer>
   </body>
 </html>
 
@@ -42,19 +53,47 @@ const otherPath = Astro.url.pathname.replace(`/${lang}/`, `/${otherLang}/`);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem 1.5rem;
+    padding: 1.25rem 1.5rem;
     border-bottom: 1px solid var(--border);
   }
   .site-header__brand {
-    font-weight: 600;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
     text-decoration: none;
   }
   .site-header__nav {
     display: flex;
-    gap: 1rem;
+    gap: 1.75rem;
   }
   .site-header__nav a {
     text-decoration: none;
     color: var(--muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.85rem;
+  }
+  .site-header__nav a.active {
+    color: var(--class-b);
+  }
+  .site-footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+  .site-footer a {
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .site-footer__rights {
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
 </style>
