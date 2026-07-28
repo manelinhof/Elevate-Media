@@ -62,11 +62,13 @@
   box-sizing: border-box;
 }
 
-/* Single-page nav scrolls to #home/#about/#services. scroll-padding-top
-   keeps the sticky header (see BaseLayout.astro) from covering the top of
-   whichever section is jumped to. Disabled under reduced-motion below. */
+/* Single-page nav scrolls to #work/#about/#services. Lenis (see
+   BaseLayout.astro) now owns scroll smoothing when active, so no
+   scroll-behavior: smooth here — it would just fight Lenis's own RAF-driven
+   scroll. scroll-padding-top stays as the offset for native anchor jumps
+   when Lenis isn't initialized (reduced motion), keeping the sticky header
+   from covering whichever section is landed on. */
 html {
-  scroll-behavior: smooth;
   scroll-padding-top: 5rem;
 }
 
