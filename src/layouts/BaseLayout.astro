@@ -1,4 +1,5 @@
 ---
+import { Icon } from 'astro-icon/components';
 import { BRAND } from '../data/site';
 import { useTranslations } from '../i18n/utils';
 import type { Lang } from '../i18n/ui';
@@ -26,7 +27,7 @@ const year = new Date().getFullYear();
     <title>{title} — {BRAND.displayName}</title>
   </head>
   <body>
-    <header class="site-header">
+    <header class="site-header" id="site-header">
       <!--
         "Home" is no longer a nav destination — clicking the brand/logo
         does that job instead (bare page-root navigation always lands at
@@ -47,6 +48,20 @@ const year = new Date().getFullYear();
         <a class="nav-link" href={`${homeHref}#about`} data-section="about">{t('nav.about')}</a>
         <a class="nav-link" href={otherPath}>{t('lang.switch')}</a>
       </div>
+
+      <button
+        type="button"
+        class="menu-toggle"
+        id="menu-toggle"
+        aria-expanded="false"
+        aria-controls="site-header"
+        aria-label={t('nav.menuOpen')}
+        data-label-open={t('nav.menuOpen')}
+        data-label-close={t('nav.menuClose')}
+      >
+        <Icon name="lucide:menu" class="menu-toggle__icon menu-toggle__icon--open" aria-hidden="true" />
+        <Icon name="lucide:x" class="menu-toggle__icon menu-toggle__icon--close" aria-hidden="true" />
+      </button>
     </header>
     <main>
       <slot />
@@ -60,10 +75,6 @@ const year = new Date().getFullYear();
 </html>
 
 <style>
-  /* Three-zone header: brand left, Works centered, Services/About/lang
-     right. Grid (not flex + space-between) is what actually guarantees the
-     center item stays centered regardless of how wide the two side groups
-     are. */
   .site-header {
     position: sticky;
     top: 0;
@@ -112,30 +123,11 @@ const year = new Date().getFullYear();
     justify-self: end;
   }
 
-  /* Narrow viewports: tighten spacing so the header fits without forcing
-     horizontal page scroll. This pass is a desktop-focused polish (hover
-     animations don't really apply on touch anyway); a fuller mobile nav
-     treatment (e.g. a collapsed menu) is a reasonable follow-up, not done
-     here — this is just enough to not visually break small screens. */
-  @media (max-width: 640px) {
-    .site-header {
-      gap: 0.75rem;
-      padding: 1rem;
-    }
-    .site-header__logo {
-      width: 24px;
-      height: 24px;
-    }
-    .site-header__right {
-      gap: 0.85rem;
-    }
-    .nav-link {
-      font-size: 0.7rem;
-    }
-  }
-
   /* Hover and active share one visual language (the underline), rather
-     than hover getting one treatment and active another. */
+     than hover getting one treatment and active another. The GSAP
+     magnetic-hover script (below) moves the link itself via transform;
+     this CSS transform is only the fallback for non-hover-capable/reduced-
+     motion contexts where the JS effect never attaches. */
   .nav-link {
     position: relative;
     display: inline-block;
@@ -148,7 +140,6 @@ const year = new Date().getFullYear();
     font-size: 0.85rem;
     transition:
       color 200ms ease,
-      transform 200ms ease,
       letter-spacing 200ms ease;
   }
   .nav-link::after {
@@ -165,7 +156,6 @@ const year = new Date().getFullYear();
   }
   .nav-link:hover {
     color: var(--fg);
-    transform: translateY(-2px);
     letter-spacing: 0.09em;
   }
   .nav-link:hover::after,
@@ -174,6 +164,31 @@ const year = new Date().getFullYear();
   }
   .nav-link.active {
     color: var(--class-b);
+  }
+
+  .menu-toggle {
+    display: none;
+    justify-self: end;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    padding: 0.4rem;
+    color: var(--fg);
+    cursor: pointer;
+  }
+  .menu-toggle__icon {
+    width: 24px;
+    height: 24px;
+  }
+  .menu-toggle__icon--close {
+    display: none;
+  }
+  .menu-toggle[aria-expanded='true'] .menu-toggle__icon--open {
+    display: none;
+  }
+  .menu-toggle[aria-expanded='true'] .menu-toggle__icon--close {
+    display: block;
   }
 
   .site-footer {
@@ -195,11 +210,61 @@ const year = new Date().getFullYear();
     text-transform: uppercase;
     letter-spacing: 0.04em;
   }
+
+  /* Narrow viewports: collapse center/right nav into a hamburger-triggered
+     overlay instead of the tight-but-cramped inline layout from the
+     previous iteration. */
+  @media (max-width: 640px) {
+    .site-header {
+      gap: 0.75rem;
+      padding: 1rem;
+      grid-template-columns: auto auto 1fr auto;
+    }
+    .site-header__logo {
+      width: 24px;
+      height: 24px;
+    }
+    .menu-toggle {
+      display: inline-flex;
+    }
+
+    .site-header__center,
+    .site-header__right {
+      display: none;
+      justify-self: stretch;
+    }
+    .site-header[data-menu-open='true'] .site-header__center,
+    .site-header[data-menu-open='true'] .site-header__right {
+      display: flex;
+      grid-column: 1 / -1;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+      padding-top: 1rem;
+    }
+    .site-header[data-menu-open='true'] .site-header__right {
+      padding-top: 0;
+      padding-bottom: 0.5rem;
+      border-top: 1px solid var(--border);
+      margin-top: 0.5rem;
+    }
+    .nav-link {
+      font-size: 1.1rem;
+    }
+  }
 </style>
 
 <script>
-  // Scrollspy for the single-page nav (#work/#about/#services). No-ops
-  // safely on pages that don't have these section ids (work/[slug],
+  import Lenis from 'lenis';
+  import gsap from 'gsap';
+  import { prefersReducedMotion } from '../lib/motion-prefs';
+
+  const header = document.getElementById('site-header') as HTMLElement;
+  const navLinks = document.querySelectorAll<HTMLAnchorElement>('.nav-link[data-section]');
+  const reducedMotion = prefersReducedMotion();
+
+  // ---- Scrollspy for the single-page nav (#work/#about/#services). ----
+  // No-ops safely on pages that don't have these section ids (work/[slug],
   // gallery) — same defensive pattern as the motion-prefs-driven scripts
   // elsewhere in the codebase.
   const ids = ['work', 'about', 'services'];
@@ -207,15 +272,13 @@ const year = new Date().getFullYear();
     .map((id) => document.getElementById(id))
     .filter((el): el is HTMLElement => el !== null);
 
+  const setActive = (id: string) => {
+    navLinks.forEach((link) => {
+      link.classList.toggle('active', link.dataset.section === id);
+    });
+  };
+
   if (sections.length > 0) {
-    const navLinks = document.querySelectorAll<HTMLAnchorElement>('.nav-link[data-section]');
-
-    const setActive = (id: string) => {
-      navLinks.forEach((link) => {
-        link.classList.toggle('active', link.dataset.section === id);
-      });
-    };
-
     const observer = new IntersectionObserver(
       (entries) => {
         const visible = entries
@@ -232,4 +295,96 @@ const year = new Date().getFullYear();
 
     sections.forEach((el) => observer.observe(el));
   }
+
+  // ---- Lenis smooth scroll ----
+  // JS-driven (requestAnimationFrame), so the CSS reduced-motion override
+  // (global.css) can't reach it — skip entirely and fall back to plain
+  // native scroll (already instant under reduced motion via that same
+  // override's `scroll-behavior: auto !important`).
+  let lenis: Lenis | null = null;
+  if (!reducedMotion) {
+    lenis = new Lenis();
+    const raf = (time: number) => {
+      lenis?.raf(time);
+      requestAnimationFrame(raf);
+    };
+    requestAnimationFrame(raf);
+  }
+
+  // ---- Nav click handling: Lenis scrollTo + close mobile menu ----
+  navLinks.forEach((link) => {
+    link.addEventListener('click', (event) => {
+      const hashIndex = link.getAttribute('href')?.indexOf('#') ?? -1;
+      if (hashIndex === -1) return; // language switch etc. — normal navigation
+
+      const targetId = link.getAttribute('href')!.slice(hashIndex + 1);
+      const targetEl = document.getElementById(targetId);
+      // Section doesn't exist on this page (e.g. clicked from /work/[slug])
+      // — let the browser do a real navigation to the home page instead.
+      if (!targetEl) return;
+
+      event.preventDefault();
+      closeMenu();
+      if (lenis) {
+        const headerHeight = header.offsetHeight;
+        lenis.scrollTo(targetEl, { offset: -headerHeight });
+      } else {
+        targetEl.scrollIntoView();
+        history.replaceState(null, '', `#${targetId}`);
+        setActive(targetId);
+      }
+    });
+  });
+
+  // ---- GSAP entrance animation ----
+  if (!reducedMotion) {
+    gsap.from(['.site-header__brand', '.site-header__center', '.site-header__right'], {
+      opacity: 0,
+      y: -12,
+      duration: 0.5,
+      ease: 'power2.out',
+      stagger: 0.08,
+    });
+  }
+
+  // ---- GSAP magnetic hover (pointer-capable devices only) ----
+  if (!reducedMotion && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    navLinks.forEach((link) => {
+      link.addEventListener('mousemove', (event) => {
+        const rect = link.getBoundingClientRect();
+        const x = event.clientX - rect.left - rect.width / 2;
+        const y = event.clientY - rect.top - rect.height / 2;
+        gsap.to(link, { x: x * 0.35, y: y * 0.5, duration: 0.3, ease: 'power2.out' });
+      });
+      link.addEventListener('mouseleave', () => {
+        gsap.to(link, { x: 0, y: 0, duration: 0.4, ease: 'elastic.out(1, 0.4)' });
+      });
+    });
+  }
+
+  // ---- Mobile menu toggle ----
+  const menuToggle = document.getElementById('menu-toggle') as HTMLButtonElement;
+  const isOpen = () => header.dataset.menuOpen === 'true';
+
+  const openMenu = () => {
+    header.dataset.menuOpen = 'true';
+    menuToggle.setAttribute('aria-expanded', 'true');
+    menuToggle.setAttribute('aria-label', menuToggle.dataset.labelClose ?? '');
+  };
+
+  function closeMenu() {
+    if (!isOpen()) return;
+    header.dataset.menuOpen = 'false';
+    menuToggle.setAttribute('aria-expanded', 'false');
+    menuToggle.setAttribute('aria-label', menuToggle.dataset.labelOpen ?? '');
+  }
+
+  menuToggle.addEventListener('click', () => {
+    if (isOpen()) closeMenu();
+    else openMenu();
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeMenu();
+  });
 </script>

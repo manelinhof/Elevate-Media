@@ -20,6 +20,8 @@ export const ui = {
     'nav.work': 'Trabalhos',
     'nav.about': 'Sobre', // TODO(pt-review)
     'nav.services': 'Serviços',
+    'nav.menuOpen': 'Abrir menu', // TODO(pt-review)
+    'nav.menuClose': 'Fechar menu', // TODO(pt-review)
     'lang.switch': 'English',
 
     'home.heading': 'Filmagem aérea profissional', // TODO(pt-review)
@@ -64,6 +66,8 @@ export const ui = {
     'nav.work': 'Works',
     'nav.about': 'About',
     'nav.services': 'Services',
+    'nav.menuOpen': 'Open menu',
+    'nav.menuClose': 'Close menu',
     'lang.switch': 'Português',
 
     'home.heading': 'Professional aerial cinematography',

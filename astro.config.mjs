@@ -1,5 +1,6 @@
 import { defineConfig } from 'astro/config';
 import cloudflare from '@astrojs/cloudflare';
+import icon from 'astro-icon';
 
 // SSR on Cloudflare Pages. `platformProxy` surfaces the D1/R2 bindings
 // declared in wrangler.toml to `astro dev` via Miniflare, so local dev
@@ -17,4 +18,9 @@ export default defineConfig({
       enabled: true,
     },
   }),
+  // Resolves <Icon> to inline SVG at build/request time — zero client-JS
+  // cost, unlike most icon component libraries. Icon set is bundled
+  // (@iconify-json/lucide) rather than fetched, same self-hosted approach
+  // as the fonts.
+  integrations: [icon()],
 });
