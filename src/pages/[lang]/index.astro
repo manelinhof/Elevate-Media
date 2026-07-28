@@ -59,16 +59,19 @@ const equipment = [
       {projects.length === 0 ? (
         <p>{t('home.empty')}</p>
       ) : (
-        <div class:list={['grid', { cluster: useCluster }]}>
-          {projects.map((project, i) =>
-            useCluster ? (
-              <div class="tile-position" style={clusterPositions[i]}>
-                <ProjectTile project={project} lang={lang} mediaBase={mediaBase} spinning />
-              </div>
-            ) : (
-              <ProjectTile project={project} lang={lang} mediaBase={mediaBase} />
-            )
-          )}
+        <div class="cluster-wrapper">
+          {useCluster && <img src="/logo.png" alt="" class="cluster-logo" />}
+          <div class:list={['grid', { cluster: useCluster }]}>
+            {projects.map((project, i) =>
+              useCluster ? (
+                <div class="tile-position" style={clusterPositions[i]}>
+                  <ProjectTile project={project} lang={lang} mediaBase={mediaBase} spinning />
+                </div>
+              ) : (
+                <ProjectTile project={project} lang={lang} mediaBase={mediaBase} />
+              )
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -151,11 +154,17 @@ const equipment = [
      *position* orbits. prefers-reduced-motion already forces all
      animation-duration to ~0 globally (see global.css), so this is
      automatically disabled for those users — no extra gating needed. */
+  .cluster-logo {
+    display: none;
+  }
   @media (min-width: 960px) {
+    .cluster-wrapper {
+      position: relative;
+    }
     .grid.cluster {
       display: block;
       position: relative;
-      height: 85vmin;
+      height: 55vmin;
       --cluster-spin-duration: 180s;
       animation: cluster-spin var(--cluster-spin-duration) linear infinite;
       transform-origin: center center;
@@ -167,6 +176,22 @@ const equipment = [
       width: var(--w);
       height: var(--h);
       transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y)));
+    }
+    /* Sits outside .grid.cluster (a sibling, not a descendant) so the
+       cluster's own rotation transform never touches it — the logo stays
+       perfectly still while tiles orbit around it. */
+    .cluster-logo {
+      display: block;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 6vmin;
+      height: auto;
+      object-fit: contain;
+      opacity: 0.85;
+      pointer-events: none;
+      z-index: 1;
     }
   }
   @keyframes cluster-spin {
