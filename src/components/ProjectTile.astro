@@ -111,33 +111,66 @@ const loopSrc = mediaUrl(mediaBase, project.loop);
 
 <script>
   // Astro dedupes this script across every ProjectTile instance on the
-  // page, so this runs once and drives every tile with a single shared
-  // observer — not one IntersectionObserver per tile.
+  // page, so this runs once and drives every tile with shared logic —
+  // not one listener/observer set up per tile.
   import { shouldAutoplay } from '../lib/motion-prefs';
 
-  if (shouldAutoplay()) {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          const video = entry.target as HTMLVideoElement;
-          if (entry.isIntersecting) {
-            if (!video.src && video.dataset.src) {
-              video.src = video.dataset.src;
-            }
-            video.play().catch(() => {});
-            video.classList.add('is-playing');
-          } else {
-            video.pause();
-            video.classList.remove('is-playing');
-          }
-        }
-      },
-      { rootMargin: '200px' }
-    );
+  const play = (video: HTMLVideoElement) => {
+    if (!video.src && video.dataset.src) {
+      video.src = video.dataset.src;
+    }
+    video.play().catch(() => {});
+    video.classList.add('is-playing');
+  };
+  const pause = (video: HTMLVideoElement) => {
+    video.pause();
+    video.classList.remove('is-playing');
+  };
 
-    document.querySelectorAll<HTMLVideoElement>('.tile__loop').forEach((video) => {
-      observer.observe(video);
+  if (shouldAutoplay()) {
+    // .tile--spin is set by project *count* (see index.astro's useCluster),
+    // not viewport width — below the min-width: 960px breakpoint those
+    // tiles fall back to the plain grid CSS but still carry the class. So
+    // "is this actually rendering as the rotating cluster right now" needs
+    // both checks, or mobile would lose autoplay entirely (touch has no
+    // real hover to trigger playback with).
+    const isDesktopCluster = window.matchMedia('(min-width: 960px)').matches;
+
+    const allTiles = document.querySelectorAll<HTMLAnchorElement>('.tile');
+    const gridVideos: HTMLVideoElement[] = [];
+
+    allTiles.forEach((tile) => {
+      const video = tile.querySelector<HTMLVideoElement>('.tile__loop');
+      if (!video) return;
+
+      if (tile.classList.contains('tile--spin') && isDesktopCluster) {
+        // Cluster tiles: many are visible simultaneously in the compact
+        // rotating layout, so visibility-based autoplay would mean several
+        // videos playing at once. Hover-to-play keeps it to exactly one at
+        // a time — both the requested interaction and lighter than
+        // autoplaying everything visible.
+        tile.addEventListener('mouseenter', () => play(video));
+        tile.addEventListener('mouseleave', () => pause(video));
+      } else {
+        gridVideos.push(video);
+      }
     });
+
+    // Plain grid tiles: unchanged — visibility-based autoplay via a single
+    // shared IntersectionObserver.
+    if (gridVideos.length > 0) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            const video = entry.target as HTMLVideoElement;
+            if (entry.isIntersecting) play(video);
+            else pause(video);
+          }
+        },
+        { rootMargin: '200px' }
+      );
+      gridVideos.forEach((video) => observer.observe(video));
+    }
   }
   // If reduced-motion or saveData is set, `data-src` is never promoted to
   // `src`, so the loop video is never fetched at all — not just paused.
