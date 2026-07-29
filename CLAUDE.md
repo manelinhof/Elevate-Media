@@ -50,10 +50,13 @@ the grid is a regression.
 - **The Portuguese copy was written by a non-native speaker** and is pending
   review by the owner. Flag PT strings you're unsure of rather than silently
   rewriting them.
-- **Colour is state, never decoration.** Chrome is monochrome so the footage is
-  the only saturated thing on screen. The two accents (`--class-e` magenta,
-  `--class-b` blue) come from VFR sectional chart airspace conventions. Don't
-  add a third accent or use them ornamentally.
+- **Colour is state, never decoration** — with one deliberate exception: the
+  brand mark (`--logo-color`), which is yellow in light mode purely as a
+  brand accent, not state. It's an exception because the mark is baked at
+  `--fg`-grey and was unreadable against the light background otherwise;
+  everything else stays monochrome. The two state accents (`--class-e`
+  magenta, `--class-b` blue) come from VFR sectional chart airspace
+  conventions — don't add further accents or use these two ornamentally.
 - Respect `prefers-reduced-motion` and `navigator.connection.saveData` — both
   are already wired into the tile component.
 

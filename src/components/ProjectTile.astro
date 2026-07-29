@@ -8,9 +8,9 @@ interface Props {
   lang: Lang;
   mediaBase: string;
   // Set by the cluster layout (src/pages/[lang]/index.astro) when this tile
-  // is inside the slowly-rotating cluster wrapper. Applies a counter-
-  // rotation so the tile's own content stays upright while its position
-  // orbits with the parent — see the wrapper's `.tile-position` styling.
+  // is inside the Home spiral. Adds `.tile--spin`, which the script below
+  // uses to autoplay the loop immediately (no poster placeholder, no hover
+  // gate) and to drive the hover highlight/dim effect between cluster tiles.
   spinning?: boolean;
 }
 
@@ -21,11 +21,17 @@ const loopSrc = mediaUrl(mediaBase, project.loop);
 ---
 
 <!--
-  Grid tiles never load the full reel. Poster → IntersectionObserver → short
-  silent loop; the full reel loads only on click (the /work/[slug] page).
-  Any change that autoplays full reels here is a regression — CLAUDE.md.
+  Tiles never load the full reel — only ever the short silent loop; the full
+  reel loads only on click (the /work/[slug] page). Any change that
+  autoplays full reels here is a regression — CLAUDE.md. Plain-grid tiles
+  reveal that loop via IntersectionObserver; Home's spiral tiles (.tile--spin)
+  play it immediately and continuously instead — see the script below.
 -->
-<a class:list={['tile', { 'tile--spin': spinning }]} href={`/${lang}/work/${project.slug}`}>
+<a
+  class:list={['tile', { 'tile--spin': spinning }]}
+  href={`/${lang}/work/${project.slug}`}
+  data-title={title}
+>
   <img
     class="tile__poster"
     src={posterSrc}
@@ -67,12 +73,28 @@ const loopSrc = mediaUrl(mediaBase, project.loop);
      shared spiral path — each tile translates on its own, nothing orbits
      rigidly as one disc anymore, so there's no counter-rotation needed here;
      the tile's own poster/video just stays upright as-is. This class is
-     still used by ProjectTile's own script (below) to tell cluster tiles
-     apart from plain-grid ones for the hover-vs-touch play behavior. */
+     also used by ProjectTile's own script (below) to tell cluster tiles
+     apart from plain-grid ones, and to drive the hover highlight/dim
+     effect on pointer-capable devices. */
   .tile--spin {
     width: 100%;
     height: 100%;
     aspect-ratio: unset;
+    transition:
+      opacity 300ms ease,
+      filter 300ms ease,
+      transform 300ms ease;
+  }
+  .tile--spin:hover {
+    transform: scale(1.08);
+  }
+  /* Set on every other cluster tile (not the hovered one) — see the script
+     below. Grayscale + reduced opacity, not a third accent colour: this is
+     removing colour to signal "not the focus," which is still state, not
+     decoration (CLAUDE.md "Colour is state"). */
+  .tile--spin.is-dimmed {
+    opacity: 0.35;
+    filter: grayscale(1);
   }
 
   .tile__title {
@@ -101,7 +123,18 @@ const loopSrc = mediaUrl(mediaBase, project.loop);
       video.src = video.dataset.src;
     }
     video.play().catch(() => {});
-    video.classList.add('is-playing');
+    // Wait for an actual frame before crossfading over the poster — adding
+    // is-playing immediately would swap in a still-blank <video> the moment
+    // playback is *requested*, not when it's actually ready, which can flash
+    // black for a frame. This keeps the poster→video handoff seamless
+    // regardless of what triggered play() (hover, autoplay, visibility).
+    if (video.readyState >= 2) {
+      video.classList.add('is-playing');
+    } else {
+      video.addEventListener('loadeddata', () => video.classList.add('is-playing'), {
+        once: true,
+      });
+    }
   };
   const pause = (video: HTMLVideoElement) => {
     video.pause();
@@ -109,31 +142,50 @@ const loopSrc = mediaUrl(mediaBase, project.loop);
   };
 
   if (shouldAutoplay()) {
-    // .tile--spin tiles (the Home cluster) render at every viewport width
-    // now, but hover-to-play only makes sense on pointer-capable devices —
-    // touch has no real "hover" to trigger playback with. On touch, ring
-    // tiles just stay a static poster (tap still navigates via the <a>);
-    // they deliberately don't fall into the IntersectionObserver path
-    // either, since many ring tiles are visible at once and that would mean
-    // several videos autoplaying simultaneously in a compact layout.
     const canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
     const allTiles = document.querySelectorAll<HTMLAnchorElement>('.tile');
     const gridVideos: HTMLVideoElement[] = [];
+    const clusterTiles: HTMLAnchorElement[] = [];
 
     allTiles.forEach((tile) => {
       const video = tile.querySelector<HTMLVideoElement>('.tile__loop');
       if (!video) return;
 
       if (tile.classList.contains('tile--spin')) {
-        if (canHover) {
-          tile.addEventListener('mouseenter', () => play(video));
-          tile.addEventListener('mouseleave', () => pause(video));
-        }
+        // Cluster tiles: no placeholder — the loop plays immediately and
+        // continuously, on every device, not gated behind hover.
+        clusterTiles.push(tile);
+        play(video);
       } else {
         gridVideos.push(video);
       }
     });
+
+    // Hover highlight: only meaningful on pointer-capable devices (touch has
+    // no hover to trigger it). Hovering one cluster tile dims every other
+    // one; the hovered tile's own scale-up is plain CSS (:hover, see style
+    // block above) since it needs no cross-tile coordination.
+    //
+    // #hover-label only exists on Home (src/pages/[lang]/index.astro, where
+    // it replaces the footer) — this no-ops harmlessly on any other page
+    // that renders ProjectTile (e.g. the Works page's plain grid).
+    const hoverLabel = document.getElementById('hover-label');
+    if (canHover && clusterTiles.length > 0) {
+      clusterTiles.forEach((tile) => {
+        tile.addEventListener('mouseenter', () => {
+          clusterTiles.forEach((t) => t.classList.toggle('is-dimmed', t !== tile));
+          if (hoverLabel) {
+            hoverLabel.textContent = tile.dataset.title ?? '';
+            hoverLabel.classList.add('is-visible');
+          }
+        });
+        tile.addEventListener('mouseleave', () => {
+          clusterTiles.forEach((t) => t.classList.remove('is-dimmed'));
+          hoverLabel?.classList.remove('is-visible');
+        });
+      });
+    }
 
     // Plain grid tiles: unchanged — visibility-based autoplay via a single
     // shared IntersectionObserver.

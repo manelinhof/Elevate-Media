@@ -24,13 +24,13 @@ const mediaBase = Astro.locals.runtime.env.PUBLIC_MEDIA_BASE;
 const clusterPositions = computeClusterLayout(projects.length);
 ---
 
-<BaseLayout lang={lang} title={t('home.heading')}>
+<BaseLayout lang={lang} title={t('home.heading')} hideFooter>
   <section id="home">
     {projects.length === 0 ? (
       <p class="empty">{t('home.empty')}</p>
     ) : (
       <div class="cluster-wrapper">
-        <img src="/logo.png" alt="" class="cluster-logo" />
+        <span class="cluster-logo" aria-hidden="true"></span>
         <div class="grid cluster">
           {projects.map((project, i) => (
             <div class="tile-position" style={clusterPositions[i]}>
@@ -40,6 +40,11 @@ const clusterPositions = computeClusterLayout(projects.length);
         </div>
       </div>
     )}
+    <!-- Takes over the footer's space: empty at rest, filled with the
+         hovered cluster tile's title by ProjectTile.astro's script (it
+         looks for this id and no-ops if absent, e.g. on the Works page's
+         plain grid). -->
+    <p id="hover-label" class="hover-label" aria-live="polite"></p>
   </section>
 </BaseLayout>
 
@@ -49,6 +54,30 @@ const clusterPositions = computeClusterLayout(projects.length);
   }
   .empty {
     color: var(--muted);
+  }
+
+  /* Sits where the footer used to — fixed to the viewport bottom, not page
+     flow, since Home never scrolls (see the script tag below). Empty and
+     invisible at rest; ProjectTile.astro's script fills it with the
+     hovered cluster tile's title and fades it in. */
+  .hover-label {
+    position: fixed;
+    left: 50%;
+    bottom: 1.5rem;
+    transform: translateX(-50%);
+    margin: 0;
+    text-align: center;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.85rem;
+    color: var(--muted);
+    opacity: 0;
+    transition: opacity 300ms ease;
+    pointer-events: none;
+  }
+  .hover-label.is-visible {
+    opacity: 1;
   }
 
   /* Wide, gently-tilted spiral cluster (cipher.tv-derived, matching their
@@ -74,8 +103,15 @@ const clusterPositions = computeClusterLayout(projects.length);
     height: var(--h);
     transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y)));
   }
-  /* Sits outside .grid.cluster (a sibling, not a descendant) — a fixed,
-     non-moving landmark at the center of the path tiles travel around. */
+  /* Sits outside .grid.cluster (a sibling, not a descendant) — stays
+     centered on the path tiles travel around, but spins in place on the
+     same scroll-driven `time` value as the tiles (see the script tag
+     below). This static transform is the SSR/reduced-motion resting state
+     (centered, unrotated); the script overrides it every frame otherwise. */
+  /* Rendered as a CSS mask, not an <img>, so its colour follows
+     --logo-color (var(--fg) normally, yellow in light mode — see
+     global.css and CLAUDE.md's "colour is state" exception) rather than
+     the flat grey baked into logo.png. */
   .cluster-logo {
     display: block;
     position: absolute;
@@ -83,11 +119,14 @@ const clusterPositions = computeClusterLayout(projects.length);
     left: 50%;
     transform: translate(-50%, -50%);
     width: 6vmin;
-    height: auto;
-    object-fit: contain;
+    aspect-ratio: 1;
+    background-color: var(--logo-color);
+    mask: url('/logo.png') center / contain no-repeat;
+    -webkit-mask: url('/logo.png') center / contain no-repeat;
     opacity: 0.85;
     pointer-events: none;
     z-index: 1;
+    transition: background-color 300ms ease;
   }
 </style>
 
@@ -130,6 +169,7 @@ const clusterPositions = computeClusterLayout(projects.length);
   import { prefersReducedMotion } from '../../lib/motion-prefs';
 
   const tiles = [...document.querySelectorAll<HTMLElement>('.tile-position')];
+  const logo = document.querySelector<HTMLElement>('.cluster-logo');
 
   if (tiles.length > 0 && !prefersReducedMotion()) {
     const BASE_SPEED = 0.015; // idle drift, cipher's exact constant
@@ -175,6 +215,13 @@ const clusterPositions = computeClusterLayout(projects.length);
         el.style.setProperty('--x', `${x}vmin`);
         el.style.setProperty('--y', `${y}vmin`);
       });
+      // The center logo rotates in place on the same `time` value driving
+      // the tiles — one full spin per full spiral loop — so it visibly
+      // speeds up/reverses with scroll exactly like the tiles do, instead
+      // of sitting inert while everything around it moves.
+      if (logo) {
+        logo.style.transform = `translate(-50%, -50%) rotate(${time * 360}deg)`;
+      }
       requestAnimationFrame(render);
     }
     requestAnimationFrame(render);

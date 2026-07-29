@@ -8,9 +8,13 @@ import '../styles/global.css';
 interface Props {
   lang: Lang;
   title: string;
+  // Home omits the footer — the hovered project's name takes over that
+  // space instead (see src/pages/[lang]/index.astro). Every other page
+  // keeps the normal footer.
+  hideFooter?: boolean;
 }
 
-const { lang, title } = Astro.props;
+const { lang, title, hideFooter = false } = Astro.props;
 const t = useTranslations(lang);
 const otherLang: Lang = lang === 'pt' ? 'en' : 'pt';
 const otherPath = Astro.url.pathname.replace(`/${lang}/`, `/${otherLang}/`);
@@ -36,6 +40,21 @@ const whatsappHref = `https://wa.me/${OPERATOR.whatsapp.replace(/\D/g, '')}`;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title} — {BRAND.displayName}</title>
+    <!-- Resolve the theme before first paint (stored choice, else OS
+         preference) so there's no flash of the wrong theme. Must run
+         synchronously here, not in the deferred module script below. -->
+    <script is:inline>
+      (function () {
+        var stored = localStorage.getItem('theme');
+        var theme =
+          stored === 'light' || stored === 'dark'
+            ? stored
+            : window.matchMedia('(prefers-color-scheme: light)').matches
+              ? 'light'
+              : 'dark';
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
   </head>
   <body>
     <header class="site-header" id="site-header">
@@ -46,7 +65,7 @@ const whatsappHref = `https://wa.me/${OPERATOR.whatsapp.replace(/\D/g, '')}`;
         this link's accessible name.
       -->
       <a class="site-header__brand" href={homeHref} aria-label={t('nav.home')}>
-        <img class="site-header__logo" src="/logo.png" alt="" width="32" height="32" />
+        <span class="site-header__logo" aria-hidden="true"></span>
         <span class="site-header__wordmark">{BRAND.displayName}</span>
       </a>
 
@@ -58,6 +77,17 @@ const whatsappHref = `https://wa.me/${OPERATOR.whatsapp.replace(/\D/g, '')}`;
         <a class:list={['nav-link', { active: isServicesActive }]} href={servicesHref}>{t('nav.services')}</a>
         <a class:list={['nav-link', { active: isAboutActive }]} href={aboutHref}>{t('nav.about')}</a>
         <a class="nav-link" href={otherPath}>{t('lang.switch')}</a>
+        <button
+          type="button"
+          class="theme-toggle"
+          id="theme-toggle"
+          aria-label={t('theme.toggleLight')}
+          data-label-light={t('theme.toggleLight')}
+          data-label-dark={t('theme.toggleDark')}
+        >
+          <Icon name="lucide:sun" class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true" />
+          <Icon name="lucide:moon" class="theme-toggle__icon theme-toggle__icon--moon" aria-hidden="true" />
+        </button>
         <a class="nav-link nav-cta" href={whatsappHref} target="_blank" rel="noopener noreferrer">
           {t('nav.contact')}
         </a>
@@ -80,11 +110,13 @@ const whatsappHref = `https://wa.me/${OPERATOR.whatsapp.replace(/\D/g, '')}`;
     <main>
       <slot />
     </main>
-    <footer class="site-footer">
-      <span>{BRAND.displayName}</span>
-      <a href={BRAND.instagramUrl} target="_blank" rel="noopener noreferrer">Instagram</a>
-      <span class="site-footer__rights">© {year} {BRAND.displayName}</span>
-    </footer>
+    {!hideFooter && (
+      <footer class="site-footer">
+        <span>{BRAND.displayName}</span>
+        <a href={BRAND.instagramUrl} target="_blank" rel="noopener noreferrer">Instagram</a>
+        <span class="site-footer__rights">© {year} {BRAND.displayName}</span>
+      </footer>
+    )}
   </body>
 </html>
 
@@ -99,7 +131,6 @@ const whatsappHref = `https://wa.me/${OPERATOR.whatsapp.replace(/\D/g, '')}`;
     gap: 1.5rem;
     padding: 1.25rem 1.5rem;
     background: var(--bg);
-    border-bottom: 1px solid var(--border);
   }
 
   .site-header__brand {
@@ -113,12 +144,20 @@ const whatsappHref = `https://wa.me/${OPERATOR.whatsapp.replace(/\D/g, '')}`;
     text-decoration: none;
     color: var(--fg);
   }
+  /* Rendered as a CSS mask, not an <img>, so its colour follows
+     --logo-color (var(--fg) normally, yellow in light mode — see
+     global.css and CLAUDE.md's "colour is state" exception) rather than
+     the flat grey baked into logo.png. */
   .site-header__logo {
     display: block;
     width: 32px;
     height: 32px;
-    object-fit: contain;
-    transition: transform 600ms ease;
+    background-color: var(--logo-color);
+    mask: url('/logo.png') center / contain no-repeat;
+    -webkit-mask: url('/logo.png') center / contain no-repeat;
+    transition:
+      transform 600ms ease,
+      background-color 300ms ease;
   }
   /* A drone-rotor mark gets a rotor spin on hover — a small signature
      detail tied to the logo's own shape, not decoration for its own sake.
@@ -196,6 +235,25 @@ const whatsappHref = `https://wa.me/${OPERATOR.whatsapp.replace(/\D/g, '')}`;
     color: #fff;
     letter-spacing: 0.06em;
     opacity: 0.9;
+  }
+
+  .theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    padding: 0.3rem;
+    color: var(--muted);
+    cursor: pointer;
+    transition: color 200ms ease;
+  }
+  .theme-toggle:hover {
+    color: var(--fg);
+  }
+  .theme-toggle__icon {
+    width: 18px;
+    height: 18px;
   }
 
   .menu-toggle {
@@ -346,6 +404,23 @@ const whatsappHref = `https://wa.me/${OPERATOR.whatsapp.replace(/\D/g, '')}`;
       });
     });
   }
+
+  // ---- Theme toggle ----
+  const themeToggle = document.getElementById('theme-toggle') as HTMLButtonElement;
+  const root = document.documentElement;
+
+  const applyThemeLabel = () => {
+    const isLight = root.dataset.theme === 'light';
+    themeToggle.setAttribute('aria-label', (isLight ? themeToggle.dataset.labelDark : themeToggle.dataset.labelLight) ?? '');
+  };
+  applyThemeLabel();
+
+  themeToggle.addEventListener('click', () => {
+    const next = root.dataset.theme === 'light' ? 'dark' : 'light';
+    root.dataset.theme = next;
+    localStorage.setItem('theme', next);
+    applyThemeLabel();
+  });
 
   // ---- Mobile menu toggle ----
   const menuToggle = document.getElementById('menu-toggle') as HTMLButtonElement;
