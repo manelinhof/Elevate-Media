@@ -20,6 +20,7 @@ export const ui = {
     'nav.work': 'Trabalhos',
     'nav.about': 'Sobre', // TODO(pt-review)
     'nav.services': 'Serviços',
+    'nav.contact': 'Contacte-nos', // TODO(pt-review)
     'nav.menuOpen': 'Abrir menu', // TODO(pt-review)
     'nav.menuClose': 'Fechar menu', // TODO(pt-review)
     'lang.switch': 'English',
@@ -66,6 +67,7 @@ export const ui = {
     'nav.work': 'Works',
     'nav.about': 'About',
     'nav.services': 'Services',
+    'nav.contact': 'Get in touch',
     'nav.menuOpen': 'Open menu',
     'nav.menuClose': 'Close menu',
     'lang.switch': 'Português',

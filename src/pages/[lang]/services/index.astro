@@ -1,0 +1,27 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { isValidLang, useTranslations } from '../../../i18n/utils';
+import type { Lang } from '../../../i18n/ui';
+
+const { lang: langParam } = Astro.params;
+if (!langParam || !isValidLang(langParam)) {
+  return new Response('Not found', { status: 404 });
+}
+const lang = langParam as Lang;
+const t = useTranslations(lang);
+---
+
+<BaseLayout lang={lang} title={t('services.heading')}>
+  <section id="services">
+    <h2>{t('services.heading')}</h2>
+    <p>{t('services.comingSoon')}</p>
+    <div data-todo="Cal.com embed — requires-confirmation mode, see CLAUDE.md open task 7"></div>
+  </section>
+</BaseLayout>
+
+<style>
+  #services {
+    padding: 3rem 1.5rem;
+    max-width: 720px;
+  }
+</style>

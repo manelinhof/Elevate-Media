@@ -62,12 +62,11 @@
   box-sizing: border-box;
 }
 
-/* Single-page nav scrolls to #work/#about/#services. Lenis (see
-   BaseLayout.astro) now owns scroll smoothing when active, so no
+/* Lenis (see BaseLayout.astro) owns scroll smoothing when active, so no
    scroll-behavior: smooth here — it would just fight Lenis's own RAF-driven
-   scroll. scroll-padding-top stays as the offset for native anchor jumps
-   when Lenis isn't initialized (reduced motion), keeping the sticky header
-   from covering whichever section is landed on. */
+   scroll. scroll-padding-top is a defensive default so the sticky header
+   never covers the target of any in-page anchor jump, should one get added
+   later — every current nav link is a real page, not an anchor. */
 html {
   scroll-padding-top: 5rem;
 }

@@ -1,10 +1,8 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import Hero from '../../components/Hero.astro';
 import ProjectTile from '../../components/ProjectTile.astro';
 import { getProjects } from '../../lib/projects';
 import { computeClusterLayout } from '../../lib/cluster-layout';
-import { activeCategories, BRAND } from '../../data/site';
 import { isValidLang, useTranslations } from '../../i18n/utils';
 import type { Lang } from '../../i18n/ui';
 
@@ -16,230 +14,149 @@ const lang = langParam as Lang;
 const t = useTranslations(lang);
 
 const projects = getProjects();
-const categories = activeCategories(projects);
 const mediaBase = Astro.locals.runtime.env.PUBLIC_MEDIA_BASE;
-const heroProject = projects.find((p) => p.featured) ?? projects[0];
 
-// Below this many projects, a scattered cluster just looks like empty
-// space with a couple of rectangles in it — keep the plain grid until
-// there's enough real work (via ingest.sh) to make it worth scattering.
-const MIN_PROJECTS_FOR_CLUSTER = 6;
-const useCluster = projects.length >= MIN_PROJECTS_FOR_CLUSTER;
-const clusterPositions = useCluster ? computeClusterLayout(projects.length) : [];
-
-const services = [
-  t('about.services.fpv'),
-  t('about.services.realEstate'),
-  t('about.services.hotels'),
-  t('about.services.tourism'),
-  t('about.services.events'),
-  t('about.services.automotive'),
-  t('about.services.flythrough'),
-];
-
-const equipment = [
-  t('about.equipment.airUnit'),
-  t('about.equipment.frame'),
-  t('about.equipment.camera'),
-  t('about.equipment.grading'),
-];
+// Home is the cluster — full stop, at every width, and nothing else on
+// the page besides the shared header/footer (BaseLayout). The practical
+// browsing experience (headline, tagline, category filters, plain grid)
+// lives on the separate /work/ listing page; About and Services are their
+// own routes too — see src/pages/[lang]/about and .../services.
+const clusterPositions = computeClusterLayout(projects.length);
 ---
 
 <BaseLayout lang={lang} title={t('home.heading')}>
-  <section id="work">
-    <div class="content">
-      {categories.length > 0 && (
-        <ul class="categories">
-          {categories.map((c) => (
-            <li class="label">{c[lang]}</li>
+  <section id="home">
+    {projects.length === 0 ? (
+      <p class="empty">{t('home.empty')}</p>
+    ) : (
+      <div class="cluster-wrapper">
+        <img src="/logo.png" alt="" class="cluster-logo" />
+        <div class="grid cluster">
+          {projects.map((project, i) => (
+            <div class="tile-position" style={clusterPositions[i]}>
+              <ProjectTile project={project} lang={lang} mediaBase={mediaBase} spinning />
+            </div>
           ))}
-        </ul>
-      )}
-
-      {projects.length === 0 ? (
-        <p>{t('home.empty')}</p>
-      ) : (
-        <div class="cluster-wrapper">
-          {useCluster && <img src="/logo.png" alt="" class="cluster-logo" />}
-          <div class:list={['grid', { cluster: useCluster }]}>
-            {projects.map((project, i) =>
-              useCluster ? (
-                <div class="tile-position" style={clusterPositions[i]}>
-                  <ProjectTile project={project} lang={lang} mediaBase={mediaBase} spinning />
-                </div>
-              ) : (
-                <ProjectTile project={project} lang={lang} mediaBase={mediaBase} />
-              )
-            )}
-          </div>
         </div>
-      )}
-    </div>
-
-    {heroProject && <Hero project={heroProject} lang={lang} mediaBase={mediaBase} />}
-  </section>
-
-  <section id="about">
-    <h2>{t('about.heading')}</h2>
-    <p class="intro">{t('about.intro')}</p>
-
-    <div class="group">
-      <h3>{t('about.services.heading')}</h3>
-      <ul class="prose-list">
-        {services.map((item) => (
-          <li>{item}</li>
-        ))}
-      </ul>
-    </div>
-
-    <div class="group">
-      <h3>{t('about.equipment.heading')}</h3>
-      <ul class="prose-list">
-        {equipment.map((item) => (
-          <li>{item}</li>
-        ))}
-      </ul>
-    </div>
-
-    <div class="social">
-      <p>{t('about.social.stat')}</p>
-      <a href={BRAND.instagramUrl} target="_blank" rel="noopener noreferrer" class="label">
-        {t('about.social.cta')} — {BRAND.instagramHandle}
-      </a>
-    </div>
-  </section>
-
-  <section id="services">
-    <h2>{t('services.heading')}</h2>
-    <p>{t('services.comingSoon')}</p>
-    <div data-todo="Cal.com embed — requires-confirmation mode, see CLAUDE.md open task 7"></div>
+      </div>
+    )}
   </section>
 </BaseLayout>
 
 <style>
-  /* Hero inside #work stays full-bleed (no padding on the section itself);
-     only the grid/categories wrapper below it is padded. */
-  #work .content {
+  #home {
     padding: 3rem 1.5rem;
   }
-  #about,
-  #services {
-    padding: 3rem 1.5rem;
-    max-width: 720px;
-  }
-
-  .categories {
-    display: flex;
-    gap: 1.5rem;
-    list-style: none;
-    margin: 0 0 2rem;
-    padding: 0;
+  .empty {
     color: var(--muted);
   }
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 2.5rem 1.5rem;
-  }
 
-  /* Scattered cipher.tv-style cluster — desktop only, and only once there
-     are enough projects (see MIN_PROJECTS_FOR_CLUSTER) to look intentional
-     rather than sparse. Below this width/count, the plain grid above
-     applies unchanged — same proven, data-conscious mobile layout.
-
-     The whole cluster slowly rotates as one rigid disc (cluster-spin);
-     each tile counter-rotates at the same speed via --cluster-spin-duration
-     (ProjectTile.astro's .tile--spin, inherited through this custom
-     property) so its own poster/video stays upright while only its
-     *position* orbits. prefers-reduced-motion already forces all
-     animation-duration to ~0 globally (see global.css), so this is
-     automatically disabled for those users — no extra gating needed. */
-  .cluster-logo {
-    display: none;
-  }
-  @media (min-width: 960px) {
-    .cluster-wrapper {
-      position: relative;
-    }
-    .grid.cluster {
-      display: block;
-      position: relative;
-      height: 55vmin;
-      --cluster-spin-duration: 180s;
-      animation: cluster-spin var(--cluster-spin-duration) linear infinite;
-      transform-origin: center center;
-    }
-    .grid.cluster .tile-position {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      width: var(--w);
-      height: var(--h);
-      transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y)));
-    }
-    /* Sits outside .grid.cluster (a sibling, not a descendant) so the
-       cluster's own rotation transform never touches it — the logo stays
-       perfectly still while tiles orbit around it. */
-    .cluster-logo {
-      display: block;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 6vmin;
-      height: auto;
-      object-fit: contain;
-      opacity: 0.85;
-      pointer-events: none;
-      z-index: 1;
-    }
-  }
-  @keyframes cluster-spin {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  #about .intro {
-    font-size: clamp(1rem, 0.85rem + 0.6vw, 1.25rem);
-    color: var(--muted);
-    max-width: 60ch;
-    margin: 1.5rem 0 3rem;
-  }
-  .group {
-    margin-bottom: 2.5rem;
-  }
-  .group h3 {
-    margin-bottom: 1rem;
-  }
-  .prose-list {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
-  }
-  .prose-list li {
-    padding-left: 1.25rem;
+  /* Tall vertical-helix cluster (cipher.tv-derived) — the only thing Home
+     shows, at every viewport width (vmin-based sizing scales down naturally
+     on phones). Each tile's position is driven every frame by the page's
+     script tag below (--x/--y custom properties), which also handles the
+     SSR resting state before JS runs / under prefers-reduced-motion — see
+     src/lib/cluster-layout.ts and the script tag for the full picture. */
+  .cluster-wrapper {
     position: relative;
   }
-  .prose-list li::before {
-    content: '—';
+  .grid.cluster {
+    display: block;
+    position: relative;
+    height: 90vmin;
+  }
+  .grid.cluster .tile-position {
     position: absolute;
-    left: 0;
-    color: var(--muted);
+    left: 50%;
+    top: 50%;
+    width: var(--w);
+    height: var(--h);
+    transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y)));
   }
-  .social {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-  .social a {
-    text-decoration: none;
-    color: var(--class-b);
+  /* Sits outside .grid.cluster (a sibling, not a descendant) — a fixed,
+     non-moving landmark at the center of the path tiles travel around. */
+  .cluster-logo {
+    display: block;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6vmin;
+    height: auto;
+    object-fit: contain;
+    opacity: 0.85;
+    pointer-events: none;
+    z-index: 1;
   }
 </style>
+
+<script>
+  // Velocity-driven spiral (cipher.tv-derived, see project plan notes).
+  // Every tile shares one elliptical path (buildEllipseLUT/getEllipsePoint,
+  // arc-length parametrized so all tiles move at the same visual speed, and
+  // tilted 45° — see RX/RY/TILT in cluster-layout.ts) and one shared `time`
+  // scalar, offset per-tile so they're evenly spaced along it. Tiles drift
+  // continuously on their own (BASE_SPEED); scrolling (wheel input) adds a
+  // decaying bonus on top — it speeds up, slows down, or reverses the drift,
+  // but never "completes" anything.
+  //
+  // Scroll input is dedicated entirely to the spiral, not the page: wheel
+  // events are preventDefault'd here and Lenis is stopped for this page, so
+  // nothing on Home actually scrolls — matching cipher.tv itself, whose
+  // works page has no real scroll height at all. (The footer below the
+  // cluster is consequently only reachable via header nav on this page, not
+  // by scrolling past it — a deliberate tradeoff, flagged since it's a
+  // change from the plain-scroll behavior every other page still has.)
+  //
+  // Reduced-motion visitors skip this entirely and keep the SSR resting
+  // layout from computeClusterLayout (t = i/count, at time = 0) — no script
+  // attempts to run, consistent with every other motion gate in this codebase.
+  import { buildEllipseLUT, getEllipsePoint, RX, RY } from '../../lib/cluster-layout';
+  import { prefersReducedMotion } from '../../lib/motion-prefs';
+
+  const tiles = [...document.querySelectorAll<HTMLElement>('.tile-position')];
+
+  if (tiles.length > 0 && !prefersReducedMotion()) {
+    const BASE_SPEED = 1 / 180; // idle: one full loop roughly every 180s
+    const WHEEL_INFLUENCE = 0.0006; // tunable — how much wheel deltaY nudges the drift
+    const VELOCITY_DECAY = 0.6; // per-frame decay of the scroll bonus, cipher's own constant
+
+    const lut = buildEllipseLUT(RX, RY);
+    const count = tiles.length;
+    let time = 0;
+    let scrollBonus = 0;
+
+    window.addEventListener(
+      'wheel',
+      (event) => {
+        event.preventDefault();
+        scrollBonus += event.deltaY * WHEEL_INFLUENCE;
+      },
+      { passive: false }
+    );
+
+    function onLenisReady() {
+      // Stop Lenis's own smooth-scroll entirely on this page — the wheel
+      // listener above already owns scroll input, and letting Lenis also
+      // process it would fight the "nothing scrolls" goal.
+      (window as unknown as { __lenis?: { stop: () => void } }).__lenis?.stop();
+    }
+    if ((window as unknown as { __lenis?: unknown }).__lenis) onLenisReady();
+    else window.addEventListener('lenis:ready', onLenisReady, { once: true });
+
+    let last = performance.now();
+    function render(now: number) {
+      const dt = Math.min((now - last) / 1000, 0.05);
+      last = now;
+      scrollBonus *= VELOCITY_DECAY;
+      time += (BASE_SPEED + scrollBonus) * dt;
+      tiles.forEach((el, i) => {
+        const { x, y } = getEllipsePoint(lut, i / count + time);
+        el.style.setProperty('--x', `${x}vmin`);
+        el.style.setProperty('--y', `${y}vmin`);
+      });
+      requestAnimationFrame(render);
+    }
+    requestAnimationFrame(render);
+  }
+</script>
