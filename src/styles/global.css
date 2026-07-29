@@ -49,9 +49,17 @@
   --class-e: #e6007e; /* magenta */
   --class-b: #0033a0; /* blue */
 
+  /* The one deliberate exception to "colour is state" — see CLAUDE.md
+     Conventions. Defaults to --fg (the brand mark's baked-in colour), so
+     dark mode looks unchanged; only light mode below overrides it. */
+  --logo-color: var(--fg);
+
   --font-sans: 'Switzer', system-ui, -apple-system, sans-serif;
 }
 
+/* No-JS fallback: honors OS preference until the toggle script (BaseLayout.astro)
+   sets data-theme on <html>. The attribute selectors below always win over this
+   (higher specificity), regardless of source order. */
 @media (prefers-color-scheme: light) {
   :root {
     --bg: #fafafa;
@@ -59,7 +67,44 @@
     --surface: #ffffff;
     --border: #dcdcdc;
     --muted: #5a5a5a;
+    --logo-color: #eab308;
   }
+}
+
+/* Manual override written by the header's theme-toggle button. A head-inline
+   script (BaseLayout.astro) sets one of these on <html> before first paint —
+   from localStorage if the visitor has chosen before, else resolved from the
+   OS preference above — so there's no flash of the wrong theme. */
+:root[data-theme='dark'] {
+  --bg: #0a0a0a;
+  --fg: #f2f2f2;
+  --surface: #171717;
+  --border: #2e2e2e;
+  --muted: #9a9a9a;
+  /* Explicit reset, not just the --fg default above: custom properties
+     cascade per-property, so without this the light-mode media query
+     (if the OS preference matches) would still win --logo-color alone
+     even while data-theme='dark' wins every other variable here. */
+  --logo-color: var(--fg);
+}
+
+:root[data-theme='light'] {
+  --bg: #fafafa;
+  --fg: #111111;
+  --surface: #ffffff;
+  --border: #dcdcdc;
+  --muted: #5a5a5a;
+  --logo-color: #eab308;
+}
+
+/* Icon swap for the header's theme-toggle button (BaseLayout.astro) — global,
+   not scoped, so it can key off the <html> attribute set by that button's
+   script. Shows the icon for the mode a click would switch *to*. */
+:root[data-theme='light'] .theme-toggle__icon--sun {
+  display: none;
+}
+:root:not([data-theme='light']) .theme-toggle__icon--moon {
+  display: none;
 }
 
 * {

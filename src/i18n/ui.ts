@@ -24,6 +24,8 @@ export const ui = {
     'nav.menuOpen': 'Abrir menu', // TODO(pt-review)
     'nav.menuClose': 'Fechar menu', // TODO(pt-review)
     'lang.switch': 'English',
+    'theme.toggleLight': 'Ativar modo claro', // TODO(pt-review)
+    'theme.toggleDark': 'Ativar modo escuro', // TODO(pt-review)
 
     'home.heading': 'Filmagem aérea profissional', // TODO(pt-review)
     'home.tagline': 'Imagens aéreas cinematográficas, em qualquer lugar.', // TODO(pt-review)
@@ -71,6 +73,8 @@ export const ui = {
     'nav.menuOpen': 'Open menu',
     'nav.menuClose': 'Close menu',
     'lang.switch': 'Português',
+    'theme.toggleLight': 'Switch to light mode',
+    'theme.toggleDark': 'Switch to dark mode',
 
     'home.heading': 'Professional aerial cinematography',
     'home.tagline': 'Cinematic aerial footage, anywhere.',
