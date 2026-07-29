@@ -1,0 +1,64 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import Hero from '../../../components/Hero.astro';
+import ProjectTile from '../../../components/ProjectTile.astro';
+import { getProjects } from '../../../lib/projects';
+import { activeCategories } from '../../../data/site';
+import { isValidLang, useTranslations } from '../../../i18n/utils';
+import type { Lang } from '../../../i18n/ui';
+
+const { lang: langParam } = Astro.params;
+if (!langParam || !isValidLang(langParam)) {
+  return new Response('Not found', { status: 404 });
+}
+const lang = langParam as Lang;
+const t = useTranslations(lang);
+
+const projects = getProjects();
+const categories = activeCategories(projects);
+const mediaBase = Astro.locals.runtime.env.PUBLIC_MEDIA_BASE;
+const heroProject = projects.find((p) => p.featured) ?? projects[0];
+---
+
+<BaseLayout lang={lang} title={t('home.heading')}>
+  {heroProject && <Hero project={heroProject} lang={lang} mediaBase={mediaBase} />}
+
+  <div class="content">
+    {categories.length > 0 && (
+      <ul class="categories">
+        {categories.map((c) => (
+          <li class="label">{c[lang]}</li>
+        ))}
+      </ul>
+    )}
+
+    {projects.length === 0 ? (
+      <p>{t('home.empty')}</p>
+    ) : (
+      <div class="grid">
+        {projects.map((project) => (
+          <ProjectTile project={project} lang={lang} mediaBase={mediaBase} />
+        ))}
+      </div>
+    )}
+  </div>
+</BaseLayout>
+
+<style>
+  .content {
+    padding: 3rem 1.5rem;
+  }
+  .categories {
+    display: flex;
+    gap: 1.5rem;
+    list-style: none;
+    margin: 0 0 2rem;
+    padding: 0;
+    color: var(--muted);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 2.5rem 1.5rem;
+  }
+</style>

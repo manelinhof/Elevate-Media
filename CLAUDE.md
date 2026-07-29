@@ -73,11 +73,10 @@ the grid is a regression.
 4. Rename the categories in `src/data/site.ts` once the Instagram back catalogue
    is sorted. Unused categories hide themselves; no other change needed.
 5. Fill in `operatorId`, `certificates`, `insuredTo`, `whatsapp` in `site.ts`.
-6. Flesh out the remaining sections: the `/[lang]/work/[slug]` stub, and the
-   Services section on the single-page site (`/[lang]/#services` — Home,
-   About, and Services are sections of one route, not separate pages;
-   `/[lang]/work/[slug]` and `/[lang]/gallery/[token]` remain separate
-   routes).
+6. Flesh out the remaining stubs: `/[lang]/work/[slug]` and
+   `/[lang]/services`. Home, Works, About, Services, `/[lang]/work/[slug]`,
+   and `/[lang]/gallery/[token]` are all separate routes — Home is only the
+   rotating cluster (plus the shared header/footer), nothing else.
 7. Embed Cal.com for booking, configured as *requires confirmation* — drone
    shoots depend on weather, daylight and airspace, so instant-confirm slots
    would create bookings that have to be cancelled.

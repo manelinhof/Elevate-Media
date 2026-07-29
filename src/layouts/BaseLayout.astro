@@ -1,6 +1,6 @@
 ---
 import { Icon } from 'astro-icon/components';
-import { BRAND } from '../data/site';
+import { BRAND, OPERATOR } from '../data/site';
 import { useTranslations } from '../i18n/utils';
 import type { Lang } from '../i18n/ui';
 import '../styles/global.css';
@@ -16,7 +16,18 @@ const otherLang: Lang = lang === 'pt' ? 'en' : 'pt';
 const otherPath = Astro.url.pathname.replace(`/${lang}/`, `/${otherLang}/`);
 
 const homeHref = `/${lang}/`;
+const workHref = `/${lang}/work/`;
+const aboutHref = `/${lang}/about/`;
+const servicesHref = `/${lang}/services/`;
+const isWorkActive = Astro.url.pathname.includes('/work');
+const isAboutActive = Astro.url.pathname.includes('/about');
+const isServicesActive = Astro.url.pathname.includes('/services');
 const year = new Date().getFullYear();
+
+// OPERATOR.whatsapp is still the 'TODO' placeholder from src/data/site.ts
+// (CLAUDE.md open task 5) — this link is intentionally non-functional until
+// the real number is filled in.
+const whatsappHref = `https://wa.me/${OPERATOR.whatsapp.replace(/\D/g, '')}`;
 ---
 
 <!doctype html>
@@ -40,13 +51,16 @@ const year = new Date().getFullYear();
       </a>
 
       <div class="site-header__center">
-        <a class="nav-link" href={`${homeHref}#work`} data-section="work">{t('nav.work')}</a>
+        <a class:list={['nav-link', { active: isWorkActive }]} href={workHref}>{t('nav.work')}</a>
       </div>
 
       <div class="site-header__right">
-        <a class="nav-link" href={`${homeHref}#services`} data-section="services">{t('nav.services')}</a>
-        <a class="nav-link" href={`${homeHref}#about`} data-section="about">{t('nav.about')}</a>
+        <a class:list={['nav-link', { active: isServicesActive }]} href={servicesHref}>{t('nav.services')}</a>
+        <a class:list={['nav-link', { active: isAboutActive }]} href={aboutHref}>{t('nav.about')}</a>
         <a class="nav-link" href={otherPath}>{t('lang.switch')}</a>
+        <a class="nav-link nav-cta" href={whatsappHref} target="_blank" rel="noopener noreferrer">
+          {t('nav.contact')}
+        </a>
       </div>
 
       <button
@@ -166,6 +180,24 @@ const year = new Date().getFullYear();
     color: var(--class-b);
   }
 
+  /* The one deliberate "primary action" on the page — a solid-fill pill
+     rather than the shared underline treatment, so it reads as the single
+     thing to click, not another nav destination. Still state (this is the
+     one CTA), not decorative variety — see CLAUDE.md "Colour is state". */
+  .nav-cta {
+    padding: 0.5rem 1.1rem;
+    background: var(--class-b);
+    color: #fff;
+  }
+  .nav-cta::after {
+    display: none;
+  }
+  .nav-cta:hover {
+    color: #fff;
+    letter-spacing: 0.06em;
+    opacity: 0.9;
+  }
+
   .menu-toggle {
     display: none;
     justify-self: end;
@@ -260,41 +292,12 @@ const year = new Date().getFullYear();
   import { prefersReducedMotion } from '../lib/motion-prefs';
 
   const header = document.getElementById('site-header') as HTMLElement;
-  const navLinks = document.querySelectorAll<HTMLAnchorElement>('.nav-link[data-section]');
+  // Every nav link is a real page now (Home/Works/About/Services/language
+  // switch) — active state is set server-side via Astro.url.pathname (see
+  // BaseLayout's frontmatter), not tracked client-side. This selector is
+  // just for the magnetic-hover effect below.
+  const navLinks = document.querySelectorAll<HTMLAnchorElement>('.nav-link');
   const reducedMotion = prefersReducedMotion();
-
-  // ---- Scrollspy for the single-page nav (#work/#about/#services). ----
-  // No-ops safely on pages that don't have these section ids (work/[slug],
-  // gallery) — same defensive pattern as the motion-prefs-driven scripts
-  // elsewhere in the codebase.
-  const ids = ['work', 'about', 'services'];
-  const sections = ids
-    .map((id) => document.getElementById(id))
-    .filter((el): el is HTMLElement => el !== null);
-
-  const setActive = (id: string) => {
-    navLinks.forEach((link) => {
-      link.classList.toggle('active', link.dataset.section === id);
-    });
-  };
-
-  if (sections.length > 0) {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (visible) {
-          const id = visible.target.id;
-          setActive(id);
-          history.replaceState(null, '', `#${id}`);
-        }
-      },
-      { rootMargin: '-40% 0px -40% 0px', threshold: [0, 0.25, 0.5, 0.75, 1] }
-    );
-
-    sections.forEach((el) => observer.observe(el));
-  }
 
   // ---- Lenis smooth scroll ----
   // JS-driven (requestAnimationFrame), so the CSS reduced-motion override
@@ -309,32 +312,14 @@ const year = new Date().getFullYear();
       requestAnimationFrame(raf);
     };
     requestAnimationFrame(raf);
+
+    // Exposed for other pages' own <script> tags (each page's script is a
+    // separate module, so it can't see this file's module-scoped `lenis`
+    // otherwise) — the Home cluster (src/pages/[lang]/index.astro) reads
+    // scroll velocity off this instance to drive its spiral.
+    (window as unknown as { __lenis: Lenis }).__lenis = lenis;
+    window.dispatchEvent(new CustomEvent('lenis:ready'));
   }
-
-  // ---- Nav click handling: Lenis scrollTo + close mobile menu ----
-  navLinks.forEach((link) => {
-    link.addEventListener('click', (event) => {
-      const hashIndex = link.getAttribute('href')?.indexOf('#') ?? -1;
-      if (hashIndex === -1) return; // language switch etc. — normal navigation
-
-      const targetId = link.getAttribute('href')!.slice(hashIndex + 1);
-      const targetEl = document.getElementById(targetId);
-      // Section doesn't exist on this page (e.g. clicked from /work/[slug])
-      // — let the browser do a real navigation to the home page instead.
-      if (!targetEl) return;
-
-      event.preventDefault();
-      closeMenu();
-      if (lenis) {
-        const headerHeight = header.offsetHeight;
-        lenis.scrollTo(targetEl, { offset: -headerHeight });
-      } else {
-        targetEl.scrollIntoView();
-        history.replaceState(null, '', `#${targetId}`);
-        setActive(targetId);
-      }
-    });
-  });
 
   // ---- GSAP entrance animation ----
   if (!reducedMotion) {

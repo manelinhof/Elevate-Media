@@ -62,36 +62,17 @@ const loopSrc = mediaUrl(mediaBase, project.loop);
   .tile__loop.is-playing {
     opacity: 1;
   }
-  /* Cluster mode: the wrapper (.tile-position, in index.astro) handles
-     absolute placement and slowly orbits with the whole cluster. This
-     counter-rotates at the exact same speed in the opposite direction —
-     via the --cluster-spin-duration custom property inherited from the
-     cluster container — so the tile's own poster/video stays upright
-     while its position orbits. prefers-reduced-motion already collapses
-     all animation-duration globally (see global.css), so this is
-     automatically neutralized for those users.
-
-     Gated behind the same min-width: 960px breakpoint as .tile-position
-     in index.astro — below that, .tile-position has no positioning of its
-     own (mobile stays the plain grid), so this must not spin either, or
-     tiles would visibly rotate in place with no compensating parent
-     rotation. */
-  @media (min-width: 960px) {
-    .tile--spin {
-      width: 100%;
-      height: 100%;
-      aspect-ratio: unset;
-      animation: tile-counter-spin var(--cluster-spin-duration, 180s) linear infinite;
-      transform-origin: center center;
-    }
-  }
-  @keyframes tile-counter-spin {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(-360deg);
-    }
+  /* Cluster mode (Home, src/pages/[lang]/index.astro): the wrapper
+     (.tile-position) handles placement and moves independently along the
+     shared spiral path — each tile translates on its own, nothing orbits
+     rigidly as one disc anymore, so there's no counter-rotation needed here;
+     the tile's own poster/video just stays upright as-is. This class is
+     still used by ProjectTile's own script (below) to tell cluster tiles
+     apart from plain-grid ones for the hover-vs-touch play behavior. */
+  .tile--spin {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: unset;
   }
 
   .tile__title {
@@ -128,13 +109,14 @@ const loopSrc = mediaUrl(mediaBase, project.loop);
   };
 
   if (shouldAutoplay()) {
-    // .tile--spin is set by project *count* (see index.astro's useCluster),
-    // not viewport width — below the min-width: 960px breakpoint those
-    // tiles fall back to the plain grid CSS but still carry the class. So
-    // "is this actually rendering as the rotating cluster right now" needs
-    // both checks, or mobile would lose autoplay entirely (touch has no
-    // real hover to trigger playback with).
-    const isDesktopCluster = window.matchMedia('(min-width: 960px)').matches;
+    // .tile--spin tiles (the Home cluster) render at every viewport width
+    // now, but hover-to-play only makes sense on pointer-capable devices —
+    // touch has no real "hover" to trigger playback with. On touch, ring
+    // tiles just stay a static poster (tap still navigates via the <a>);
+    // they deliberately don't fall into the IntersectionObserver path
+    // either, since many ring tiles are visible at once and that would mean
+    // several videos autoplaying simultaneously in a compact layout.
+    const canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
     const allTiles = document.querySelectorAll<HTMLAnchorElement>('.tile');
     const gridVideos: HTMLVideoElement[] = [];
@@ -143,14 +125,11 @@ const loopSrc = mediaUrl(mediaBase, project.loop);
       const video = tile.querySelector<HTMLVideoElement>('.tile__loop');
       if (!video) return;
 
-      if (tile.classList.contains('tile--spin') && isDesktopCluster) {
-        // Cluster tiles: many are visible simultaneously in the compact
-        // rotating layout, so visibility-based autoplay would mean several
-        // videos playing at once. Hover-to-play keeps it to exactly one at
-        // a time — both the requested interaction and lighter than
-        // autoplaying everything visible.
-        tile.addEventListener('mouseenter', () => play(video));
-        tile.addEventListener('mouseleave', () => pause(video));
+      if (tile.classList.contains('tile--spin')) {
+        if (canHover) {
+          tile.addEventListener('mouseenter', () => play(video));
+          tile.addEventListener('mouseleave', () => pause(video));
+        }
       } else {
         gridVideos.push(video);
       }

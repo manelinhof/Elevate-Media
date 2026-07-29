@@ -1,0 +1,108 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { BRAND } from '../../../data/site';
+import { isValidLang, useTranslations } from '../../../i18n/utils';
+import type { Lang } from '../../../i18n/ui';
+
+const { lang: langParam } = Astro.params;
+if (!langParam || !isValidLang(langParam)) {
+  return new Response('Not found', { status: 404 });
+}
+const lang = langParam as Lang;
+const t = useTranslations(lang);
+
+const services = [
+  t('about.services.fpv'),
+  t('about.services.realEstate'),
+  t('about.services.hotels'),
+  t('about.services.tourism'),
+  t('about.services.events'),
+  t('about.services.automotive'),
+  t('about.services.flythrough'),
+];
+
+const equipment = [
+  t('about.equipment.airUnit'),
+  t('about.equipment.frame'),
+  t('about.equipment.camera'),
+  t('about.equipment.grading'),
+];
+---
+
+<BaseLayout lang={lang} title={t('about.heading')}>
+  <section id="about">
+    <h2>{t('about.heading')}</h2>
+    <p class="intro">{t('about.intro')}</p>
+
+    <div class="group">
+      <h3>{t('about.services.heading')}</h3>
+      <ul class="prose-list">
+        {services.map((item) => (
+          <li>{item}</li>
+        ))}
+      </ul>
+    </div>
+
+    <div class="group">
+      <h3>{t('about.equipment.heading')}</h3>
+      <ul class="prose-list">
+        {equipment.map((item) => (
+          <li>{item}</li>
+        ))}
+      </ul>
+    </div>
+
+    <div class="social">
+      <p>{t('about.social.stat')}</p>
+      <a href={BRAND.instagramUrl} target="_blank" rel="noopener noreferrer" class="label">
+        {t('about.social.cta')} — {BRAND.instagramHandle}
+      </a>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  #about {
+    padding: 3rem 1.5rem;
+    max-width: 720px;
+  }
+  #about .intro {
+    font-size: clamp(1rem, 0.85rem + 0.6vw, 1.25rem);
+    color: var(--muted);
+    max-width: 60ch;
+    margin: 1.5rem 0 3rem;
+  }
+  .group {
+    margin-bottom: 2.5rem;
+  }
+  .group h3 {
+    margin-bottom: 1rem;
+  }
+  .prose-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .prose-list li {
+    padding-left: 1.25rem;
+    position: relative;
+  }
+  .prose-list li::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: var(--muted);
+  }
+  .social {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .social a {
+    text-decoration: none;
+    color: var(--class-b);
+  }
+</style>
