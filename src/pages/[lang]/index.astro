@@ -51,19 +51,20 @@ const clusterPositions = computeClusterLayout(projects.length);
     color: var(--muted);
   }
 
-  /* Tall vertical-helix cluster (cipher.tv-derived) — the only thing Home
-     shows, at every viewport width (vmin-based sizing scales down naturally
-     on phones). Each tile's position is driven every frame by the page's
-     script tag below (--x/--y custom properties), which also handles the
-     SSR resting state before JS runs / under prefers-reduced-motion — see
-     src/lib/cluster-layout.ts and the script tag for the full picture. */
+  /* Wide, gently-tilted spiral cluster (cipher.tv-derived, matching their
+     actual rx/ry/tilt proportions — see cluster-layout.ts) — the only thing
+     Home shows, at every viewport width (vmin-based sizing scales down
+     naturally on phones). Each tile's position is driven every frame by the
+     page's script tag below (--x/--y custom properties), which also handles
+     the SSR resting state before JS runs / under prefers-reduced-motion —
+     see src/lib/cluster-layout.ts and the script tag for the full picture. */
   .cluster-wrapper {
     position: relative;
   }
   .grid.cluster {
     display: block;
     position: relative;
-    height: 90vmin;
+    height: 60vmin;
   }
   .grid.cluster .tile-position {
     position: absolute;
@@ -91,14 +92,18 @@ const clusterPositions = computeClusterLayout(projects.length);
 </style>
 
 <script>
-  // Velocity-driven spiral (cipher.tv-derived, see project plan notes).
+  // Velocity-driven spiral, matching cipher.tv's own reference values as
+  // closely as this DOM/CSS site can (see project plan notes — their real
+  // scene-controller source was pulled from its JS bundle: a wide ellipse,
+  // gently tilted, not the tall/45°-tilted shape we tried first, which read
+  // as each tile spinning in place rather than a legible shared spiral).
   // Every tile shares one elliptical path (buildEllipseLUT/getEllipsePoint,
-  // arc-length parametrized so all tiles move at the same visual speed, and
-  // tilted 45° — see RX/RY/TILT in cluster-layout.ts) and one shared `time`
-  // scalar, offset per-tile so they're evenly spaced along it. Tiles drift
-  // continuously on their own (BASE_SPEED); scrolling (wheel input) adds a
-  // decaying bonus on top — it speeds up, slows down, or reverses the drift,
-  // but never "completes" anything.
+  // arc-length parametrized so all tiles move at the same visual speed) and
+  // one shared `time` scalar, offset per-tile so they're evenly spaced along
+  // it. Tiles drift continuously on their own (BASE_SPEED, cipher's exact
+  // constant); scrolling (wheel input) adds a decaying bonus on top — it
+  // speeds up, slows down, or reverses the drift, but never "completes"
+  // anything.
   //
   // Scroll input is dedicated entirely to the spiral, not the page: wheel
   // events are preventDefault'd here and Lenis is stopped for this page, so
@@ -111,17 +116,32 @@ const clusterPositions = computeClusterLayout(projects.length);
   // Reduced-motion visitors skip this entirely and keep the SSR resting
   // layout from computeClusterLayout (t = i/count, at time = 0) — no script
   // attempts to run, consistent with every other motion gate in this codebase.
-  import { buildEllipseLUT, getEllipsePoint, RX, RY } from '../../lib/cluster-layout';
+  import {
+    buildEllipseLUT,
+    getEllipsePoint,
+    RX_DESKTOP,
+    RY_DESKTOP,
+    TILT_DESKTOP,
+    RX_MOBILE,
+    RY_MOBILE,
+    TILT_MOBILE,
+    MOBILE_BREAKPOINT,
+  } from '../../lib/cluster-layout';
   import { prefersReducedMotion } from '../../lib/motion-prefs';
 
   const tiles = [...document.querySelectorAll<HTMLElement>('.tile-position')];
 
   if (tiles.length > 0 && !prefersReducedMotion()) {
-    const BASE_SPEED = 1 / 180; // idle: one full loop roughly every 180s
+    const BASE_SPEED = 0.015; // idle drift, cipher's exact constant
     const WHEEL_INFLUENCE = 0.0006; // tunable — how much wheel deltaY nudges the drift
     const VELOCITY_DECAY = 0.6; // per-frame decay of the scroll bonus, cipher's own constant
 
-    const lut = buildEllipseLUT(RX, RY);
+    const isMobile = window.innerWidth <= MOBILE_BREAKPOINT;
+    const lut = buildEllipseLUT(
+      isMobile ? RX_MOBILE : RX_DESKTOP,
+      isMobile ? RY_MOBILE : RY_DESKTOP,
+      isMobile ? TILT_MOBILE : TILT_DESKTOP
+    );
     const count = tiles.length;
     let time = 0;
     let scrollBonus = 0;
