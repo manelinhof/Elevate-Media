@@ -1,29 +1,33 @@
 /*
- * Self-hosted (not a Google Fonts runtime <link>) so there's no third-party
- * network dependency at request time. Only the weights actually used are
- * fetched: 500 (body/reading weight — there is no 400 file, so body sets
+ * Switzer — a free (ITF Free Font License via Fontshare), self-hosted
+ * grotesque chosen as a visually-close stand-in for cipher.tv's actual
+ * font (ABC Favorit), which is a paid ABC Dinamo license we can't copy or
+ * redistribute. Self-hosted (not a runtime <link> to Fontshare's CDN) for
+ * the same reason Barlow Condensed was: no third-party network dependency
+ * at request time. Only the weights actually used are fetched: 500
+ * (body/reading weight — there is no 400 file, so body sets
  * font-weight: 500 explicitly), 600, and 700 (headings/emphasis).
  */
 @font-face {
-  font-family: 'Barlow Condensed';
+  font-family: 'Switzer';
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url('/fonts/barlow-condensed-500.woff2') format('woff2');
+  src: url('/fonts/switzer-500.woff2') format('woff2');
 }
 @font-face {
-  font-family: 'Barlow Condensed';
+  font-family: 'Switzer';
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url('/fonts/barlow-condensed-600.woff2') format('woff2');
+  src: url('/fonts/switzer-600.woff2') format('woff2');
 }
 @font-face {
-  font-family: 'Barlow Condensed';
+  font-family: 'Switzer';
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url('/fonts/barlow-condensed-700.woff2') format('woff2');
+  src: url('/fonts/switzer-700.woff2') format('woff2');
 }
 
 /*
@@ -45,7 +49,7 @@
   --class-e: #e6007e; /* magenta */
   --class-b: #0033a0; /* blue */
 
-  --font-sans: 'Barlow Condensed', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Switzer', system-ui, -apple-system, sans-serif;
 }
 
 @media (prefers-color-scheme: light) {
