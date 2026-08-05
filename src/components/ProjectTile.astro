@@ -53,6 +53,25 @@ const loopSrc = mediaUrl(mediaBase, project.loop);
     overflow: hidden;
     background: var(--surface);
   }
+  /* Plain grid tiles (Works page) only — cluster tiles (.tile--spin) have
+     their own hover transform below, already tuned for the spiral layout. */
+  .tile:not(.tile--spin) {
+    transition:
+      transform 350ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 300ms ease,
+      filter 300ms ease;
+  }
+  .tile:not(.tile--spin):hover {
+    transform: scale(1.12);
+    z-index: 1;
+  }
+  /* Set on every other grid tile when one is hovered — same "not the focus"
+     treatment as the cluster's .tile--spin.is-dimmed below, see the script
+     tag for the shared dim-siblings-on-hover logic. */
+  .tile:not(.tile--spin).is-dimmed {
+    opacity: 0.35;
+    filter: grayscale(1);
+  }
   .tile__poster,
   .tile__loop {
     position: absolute;
@@ -86,7 +105,7 @@ const loopSrc = mediaUrl(mediaBase, project.loop);
       transform 300ms ease;
   }
   .tile--spin:hover {
-    transform: scale(1.08);
+    transform: scale(1.28);
   }
   /* Set on every other cluster tile (not the hovered one) — see the script
      below. Grayscale + reduced opacity, not a third accent colour: this is
@@ -147,6 +166,7 @@ const loopSrc = mediaUrl(mediaBase, project.loop);
     const allTiles = document.querySelectorAll<HTMLAnchorElement>('.tile');
     const gridVideos: HTMLVideoElement[] = [];
     const clusterTiles: HTMLAnchorElement[] = [];
+    const gridTiles: HTMLAnchorElement[] = [];
 
     allTiles.forEach((tile) => {
       const video = tile.querySelector<HTMLVideoElement>('.tile__loop');
@@ -159,36 +179,66 @@ const loopSrc = mediaUrl(mediaBase, project.loop);
         play(video);
       } else {
         gridVideos.push(video);
+        gridTiles.push(tile);
       }
     });
 
-    // Hover highlight: only meaningful on pointer-capable devices (touch has
-    // no hover to trigger it). Hovering one cluster tile dims every other
-    // one; the hovered tile's own scale-up is plain CSS (:hover, see style
-    // block above) since it needs no cross-tile coordination.
-    //
+    // Dim-siblings-on-hover: shared between the cluster and the plain grid —
+    // hovering one tile dims every other tile in its own group (cluster
+    // tiles never dim grid tiles or vice versa). Only meaningful on
+    // pointer-capable devices (touch has no hover to trigger it); the
+    // hovered tile's own scale-up is plain CSS (:hover, see style block
+    // above) since it needs no cross-tile coordination.
+    const dimSiblingsOnHover = (tiles: HTMLAnchorElement[], onEnter?: (tile: HTMLAnchorElement) => void, onLeave?: () => void) => {
+      tiles.forEach((tile) => {
+        tile.addEventListener('mouseenter', () => {
+          tiles.forEach((t) => t.classList.toggle('is-dimmed', t !== tile));
+          onEnter?.(tile);
+        });
+        tile.addEventListener('mouseleave', () => {
+          tiles.forEach((t) => t.classList.remove('is-dimmed'));
+          onLeave?.();
+        });
+      });
+    };
+
     // #hover-label only exists on Home (src/pages/[lang]/index.astro, where
     // it replaces the footer) — this no-ops harmlessly on any other page
     // that renders ProjectTile (e.g. the Works page's plain grid).
     const hoverLabel = document.getElementById('hover-label');
     if (canHover && clusterTiles.length > 0) {
-      clusterTiles.forEach((tile) => {
-        tile.addEventListener('mouseenter', () => {
-          clusterTiles.forEach((t) => t.classList.toggle('is-dimmed', t !== tile));
+      dimSiblingsOnHover(
+        clusterTiles,
+        (tile) => {
+          // Elevate the hovered tile above its overlapping cluster
+          // neighbors. This can't be done in CSS on the tile itself: its
+          // parent .tile-position always carries an inline `transform` (its
+          // --x/--y spiral placement), and any `transform` establishes a
+          // new stacking context — that traps a z-index set on the tile
+          // inside its own wrapper's context, so it never actually competes
+          // with sibling tiles for stacking order. Bumping the wrapper's
+          // own z-index from here is what actually works.
+          const wrapper = tile.parentElement;
+          if (wrapper) wrapper.style.zIndex = '2';
           if (hoverLabel) {
             hoverLabel.textContent = tile.dataset.title ?? '';
             hoverLabel.classList.add('is-visible');
           }
-        });
-        tile.addEventListener('mouseleave', () => {
-          clusterTiles.forEach((t) => t.classList.remove('is-dimmed'));
+        },
+        () => {
+          clusterTiles.forEach((t) => {
+            if (t.parentElement) t.parentElement.style.zIndex = '';
+          });
           hoverLabel?.classList.remove('is-visible');
-        });
-      });
+        }
+      );
+    }
+    if (canHover && gridTiles.length > 0) {
+      dimSiblingsOnHover(gridTiles);
     }
 
-    // Plain grid tiles: unchanged — visibility-based autoplay via a single
-    // shared IntersectionObserver.
+    // Plain grid tiles: visibility-based autoplay via a single shared
+    // IntersectionObserver.
     if (gridVideos.length > 0) {
       const observer = new IntersectionObserver(
         (entries) => {

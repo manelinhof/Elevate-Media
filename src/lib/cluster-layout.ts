@@ -18,7 +18,7 @@
 // path is no longer circular. Arc-length parametrization (build a lookup
 // table, walk it by normalized distance) fixes it the same way.
 
-const TILE_WIDTH = 18; // vmin — same fixed size for every tile, see prior fix notes
+const TILE_WIDTH = 24; // vmin — same fixed size for every tile, see prior fix notes
 const TILE_RATIO = 16 / 9;
 
 // Matches cipher.tv's own reference values exactly (pulled from its JS
