@@ -67,7 +67,7 @@ const clusterPositions = computeClusterLayout(projects.length);
     transform: translateX(-50%);
     margin: 0;
     text-align: center;
-    font-weight: 600;
+    font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     font-size: 0.85rem;
@@ -240,7 +240,9 @@ const clusterPositions = computeClusterLayout(projects.length);
     else window.addEventListener('lenis:ready', onLenisReady, { once: true });
 
     let last = performance.now();
+    let spiralRunning = true;
     function render(now: number) {
+      if (!spiralRunning) return;
       const dt = Math.min((now - last) / 1000, 0.05);
       last = now;
       scrollBonus *= VELOCITY_DECAY;
@@ -260,5 +262,73 @@ const clusterPositions = computeClusterLayout(projects.length);
       requestAnimationFrame(render);
     }
     requestAnimationFrame(render);
+
+    // ---- Exit: the cluster closes itself before handing off to a project ----
+    // Clicking a tile doesn't navigate immediately — it stops the spiral,
+    // collapses every tile back toward the shared center while fading out
+    // (the reverse of the entrance bloom above), then navigates once that
+    // finishes. Modified clicks (ctrl/cmd/shift/middle-click) are left
+    // alone so opening in a new tab still works normally.
+    let closing = false;
+    tiles.forEach((pos) => {
+      const link = pos.querySelector<HTMLAnchorElement>('.tile');
+      if (!link) return;
+      link.addEventListener('click', (event) => {
+        if (closing || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+          return;
+        }
+        event.preventDefault();
+        closing = true;
+        spiralRunning = false;
+
+        const href = link.href;
+        const closeTl = gsap.timeline({
+          onComplete: () => {
+            window.location.href = href;
+          },
+        });
+
+        // Position collapse: tweens each tile-position's current --x/--y
+        // down to 0 (the center) via a plain numeric proxy object, not a
+        // direct custom-property tween — this only ever needs to read the
+        // vars once (their current value the instant the spiral stopped)
+        // and write them back every tick through onUpdate, which sidesteps
+        // relying on GSAP's own CSS-custom-property unit parsing.
+        tiles.forEach((el) => {
+          const computed = getComputedStyle(el);
+          const state = {
+            x: parseFloat(computed.getPropertyValue('--x')) || 0,
+            y: parseFloat(computed.getPropertyValue('--y')) || 0,
+          };
+          closeTl.to(
+            state,
+            {
+              x: 0,
+              y: 0,
+              duration: 0.6,
+              ease: 'power2.in',
+              onUpdate: () => {
+                el.style.setProperty('--x', `${state.x}vmin`);
+                el.style.setProperty('--y', `${state.y}vmin`);
+              },
+            },
+            0
+          );
+        });
+
+        // Shrink/fade each tile's own element (safe to animate directly —
+        // see the entrance comment above for why .tile-position itself
+        // isn't touched here), staggered from the center outward so the
+        // collapse reads as one continuous motion with the position tween.
+        closeTl.to(
+          tileEls,
+          { opacity: 0, scale: 0.2, duration: 0.5, ease: 'power2.in', stagger: { each: 0.025, from: 'center' } },
+          0
+        );
+        if (logo) {
+          closeTl.to(logo, { opacity: 0, scale: 0.4, duration: 0.4, ease: 'power2.in' }, 0.1);
+        }
+      });
+    });
   }
 </script>
