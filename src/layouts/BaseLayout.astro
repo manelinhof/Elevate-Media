@@ -12,9 +12,18 @@ interface Props {
   // space instead (see src/pages/[lang]/index.astro). Every other page
   // keeps the normal footer.
   hideFooter?: boolean;
+  // For pages that open with a full-bleed photo section meant to render
+  // behind the header (currently just work/[slug].astro's hero). Swaps the
+  // header from sticky+solid to fixed+scrim: fixed takes it out of normal
+  // flow entirely, so the page's first section starts at true y=0 instead
+  // of being pushed down by the header's own height — no need to know or
+  // guess that height. The scrim (not fully transparent) keeps nav text
+  // legible against whatever photo is behind it, same technique as
+  // Hero.astro's .hero__scrim.
+  transparentHeader?: boolean;
 }
 
-const { lang, title, hideFooter = false } = Astro.props;
+const { lang, title, hideFooter = false, transparentHeader = false } = Astro.props;
 const t = useTranslations(lang);
 const otherLang: Lang = lang === 'pt' ? 'en' : 'pt';
 const otherPath = Astro.url.pathname.replace(`/${lang}/`, `/${otherLang}/`);
@@ -57,7 +66,7 @@ const whatsappHref = `https://wa.me/${OPERATOR.whatsapp.replace(/\D/g, '')}`;
     </script>
   </head>
   <body>
-    <header class="site-header" id="site-header">
+    <header class:list={['site-header', { 'site-header--transparent': transparentHeader }]} id="site-header">
       <!--
         "Home" is no longer a nav destination — clicking the brand/logo
         does that job instead (bare page-root navigation always lands at
@@ -150,6 +159,27 @@ const whatsappHref = `https://wa.me/${OPERATOR.whatsapp.replace(/\D/g, '')}`;
     gap: 1.5rem;
     padding: 1.25rem 1.5rem;
     background: var(--bg);
+    transition: background 300ms ease;
+  }
+  /* See the transparentHeader prop comment above — fixed (not sticky) so
+     the hero photo behind it starts at true y=0, and a scrim gradient
+     (not flat transparent) so nav text stays legible over a photo of
+     unknown brightness. */
+  .site-header--transparent {
+    position: fixed;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.55), transparent);
+    /* The scrim above is always dark, in both themes — but --fg/--muted go
+       dark in light mode (correct for the normal solid --bg header, wrong
+       here). Overriding them locally covers every child at once (brand
+       wordmark, nav links, theme-toggle icon, mobile menu icon), since
+       they all already reference var(--fg)/var(--muted) rather than a
+       literal colour. --accent-gold (active link) and .nav-cta (fixed
+       gold gradient + dark text) are already theme-independent and don't
+       need an override. */
+    --fg: #fff;
+    --muted: rgba(255, 255, 255, 0.75);
   }
 
   .site-header__brand {
@@ -206,7 +236,7 @@ const whatsappHref = `https://wa.me/${OPERATOR.whatsapp.replace(/\D/g, '')}`;
     padding-block: 0.25rem;
     text-decoration: none;
     color: var(--fg);
-    font-weight: 600;
+    font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     font-size: 0.85rem;

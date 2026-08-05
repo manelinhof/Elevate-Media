@@ -1,9 +1,8 @@
 ---
-// STUB — open task 6 in CLAUDE.md: this page's full design isn't built yet.
-// It's functional (title + playable reel) but not the intended final layout.
+import { Icon } from 'astro-icon/components';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import { getProjectBySlug } from '../../../lib/projects';
-import { mediaUrl } from '../../../data/site';
+import { mediaUrl, CATEGORIES } from '../../../data/site';
 import { isValidLang, useTranslations } from '../../../i18n/utils';
 import type { Lang } from '../../../i18n/ui';
 
@@ -22,11 +21,578 @@ if (!project) {
 const mediaBase = Astro.locals.runtime.env.PUBLIC_MEDIA_BASE;
 const sdSrc = mediaUrl(mediaBase, project.reel.sd);
 const hdSrc = mediaUrl(mediaBase, project.reel.hd);
+const posterSrc = mediaUrl(mediaBase, project.poster);
+const category = CATEGORIES.find((c) => c.id === project.category);
+const publishedDate = new Date(project.publishedAt).toLocaleDateString(lang === 'pt' ? 'pt-PT' : 'en-GB', {
+  year: 'numeric',
+  month: 'long',
+});
+// Empty array (not undefined) when a project has no BTS stills — the
+// gallery section below checks .length, not presence, so this works
+// whether btsPhotos was omitted entirely or set to [].
+const btsPhotoSrcs = (project.btsPhotos ?? []).map((key) => mediaUrl(mediaBase, key));
+
+// Placeholder-only fallback (lorem ipsum, not invented marketing copy) for
+// when a project has no real description yet — none of them do today. Real
+// project.description (set 1:1 by CLAUDE.md's "no CMS, paste JSON by hand"
+// workflow) always wins when present.
+const LOREM_IPSUM =
+  'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.';
+const description = project.description?.[lang] ?? LOREM_IPSUM;
 ---
 
-<BaseLayout lang={lang} title={project.title[lang]}>
-  <a href={`/${lang}/`}>{t('work.back')}</a>
-  <h1>{project.title[lang]}</h1>
-  <video controls src={sdSrc}></video>
-  <p><a href={hdSrc}>{t('work.watchHd')}</a></p>
+<BaseLayout lang={lang} title={project.title[lang]} transparentHeader>
+  <article class="work">
+    <!--
+      Full-bleed opening photo — the header renders on top of it (see
+      BaseLayout's transparentHeader prop) rather than above it in normal
+      flow, so this section fills the true viewport top, not "viewport
+      minus header height".
+    -->
+    <section class="work__hero">
+      <img class="work__hero-photo" src={posterSrc} alt="" loading="eager" decoding="async" />
+      <div class="work__hero-scrim"></div>
+    </section>
+
+    <!-- Inverted contrast band — see the .work__about rule below. -->
+    <section class="work__about">
+      <div class="work__about-inner">
+        <span class="label work__eyebrow">{t('work.about')}</span>
+        <h1>{project.title[lang]}</h1>
+        <div class="work__meta">
+          {category && <span class="label work__category">{category[lang]}</span>}
+          <span class="label work__date">{publishedDate}</span>
+        </div>
+        <p class="work__description">{description}</p>
+      </div>
+    </section>
+
+    <!--
+      Full reel here — this is the one place on the site it's allowed to
+      load (CLAUDE.md: grid/cluster tiles only ever get the silent loop).
+      Not autoplayed, and only ever fetches the SD rendition until the
+      visitor presses play or the quality toggle — the poster is the only
+      thing that loads for free.
+    -->
+    <section class="work__video">
+      <!--
+        No native `controls` — a custom bar instead (progress/time, sound,
+        fullscreen, quality), all plain text/icons in the site's own
+        typographic style rather than the browser's default player chrome.
+      -->
+      <div class="work__player-frame" id="player-frame">
+        <video
+          class="work__player"
+          poster={posterSrc}
+          preload="metadata"
+          data-sd={sdSrc}
+          data-hd={hdSrc}
+          src={sdSrc}
+          id="work-player"
+        ></video>
+
+        <button type="button" class="work__play-overlay" id="play-overlay" aria-label={t('work.play')}>
+          <Icon name="lucide:play" class="work__play-icon" aria-hidden="true" />
+        </button>
+
+        <div class="work__controls">
+          <input
+            type="range"
+            class="work__seek"
+            id="seek"
+            min="0"
+            max="100"
+            step="0.01"
+            value="0"
+            aria-label={t('work.play')}
+          />
+          <div class="work__controls-row">
+            <button type="button" class="work__control work__control--play" id="play-toggle" aria-pressed="false">
+              <Icon name="lucide:play" class="work__control-icon work__control-icon--enter" aria-hidden="true" />
+              <Icon name="lucide:pause" class="work__control-icon work__control-icon--exit" aria-hidden="true" />
+            </button>
+            <span class="work__time" id="time-display">00:00 / 00:00</span>
+            <div class="work__controls-right">
+              <button
+                type="button"
+                class="work__control work__control--text"
+                id="sound-toggle"
+                aria-pressed="false"
+                data-label-on={t('work.soundOn')}
+                data-label-off={t('work.soundOff')}
+              >
+                <Icon name="lucide:volume-2" class="work__control-icon work__control-icon--enter" aria-hidden="true" />
+                <Icon name="lucide:volume-x" class="work__control-icon work__control-icon--exit" aria-hidden="true" />
+                <span id="sound-label">{t('work.soundOn')}</span>
+              </button>
+              <button
+                type="button"
+                class="work__control work__control--text"
+                id="quality-toggle"
+                data-label-sd={t('work.watchSd')}
+                data-label-hd={t('work.watchHd')}
+              >
+                {t('work.watchHd')}
+              </button>
+              <button type="button" class="work__control work__control--text" id="fullscreen-toggle" aria-pressed="false">
+                <Icon name="lucide:maximize" class="work__control-icon work__control-icon--enter" aria-hidden="true" />
+                <Icon name="lucide:minimize" class="work__control-icon work__control-icon--exit" aria-hidden="true" />
+                <span>{t('work.fullscreen')}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {btsPhotoSrcs.length > 0 && (
+      <section class="work__gallery">
+        <h2>{t('work.gallery')}</h2>
+        <div class="work__gallery-grid">
+          {btsPhotoSrcs.map((src) => (
+            <img class="work__gallery-photo" src={src} alt="" loading="lazy" decoding="async" />
+          ))}
+        </div>
+      </section>
+    )}
+  </article>
 </BaseLayout>
+
+<style>
+  .work__hero {
+    position: relative;
+    min-height: 60vh;
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+  }
+  .work__hero-photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  /* Bottom-weighted, not the header-area top scrim (that's the header's
+     own --transparent scrim, a separate element) — this one exists so the
+     back link sitting at the bottom of the photo stays legible too. */
+  .work__hero-scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.65), transparent 40%);
+  }
+  /* Inverted "band" section — deliberately the opposite of the page's own
+     colours (swaps --fg/--bg), not a hardcoded "white in dark mode": in
+     dark mode this reads as a light band, in light mode a dark one, so it
+     stays "the contrast colour to the current one" in both themes rather
+     than only working for one of them. */
+  .work__about {
+    background: var(--fg);
+    color: var(--bg);
+  }
+  .work__about-inner {
+    max-width: 720px;
+    padding: 3rem 1.5rem;
+  }
+  /* A muted tone relative to THIS section's own (inverted) colours, not the
+     page's --muted — that token is calibrated against --bg/--fg the normal
+     way round and would have poor contrast here once they're swapped
+     (e.g. light mode's dark-gray --muted on this section's near-black
+     background). color-mix derives one from the section's own text/bg
+     instead, so it's readable regardless of theme. */
+  .work__eyebrow,
+  .work__meta,
+  .work__description {
+    color: color-mix(in srgb, var(--bg) 65%, var(--fg));
+  }
+  .work__eyebrow {
+    margin-bottom: 0.5rem;
+  }
+  .work__meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0.75rem 0 0;
+  }
+  /* A solid badge, not coloured text — --accent-gold on this section's own
+     (possibly near-white) inverted background has poor contrast as plain
+     text; a dark-on-gold pill (same combo already proven on the CTA
+     button) sidesteps that regardless of which way the section inverted. */
+  .work__category {
+    background: var(--accent-gold);
+    color: #171200;
+    padding: 0.2rem 0.7rem;
+    border-radius: 999px;
+  }
+  .work__description {
+    margin: 1rem 0 0;
+    line-height: 1.6;
+    max-width: 65ch;
+  }
+
+  .work__video {
+    background: #000;
+  }
+  .work__player-frame {
+    position: relative;
+  }
+  .work__player {
+    display: block;
+    width: 100%;
+    max-height: 85vh;
+    background: #000;
+  }
+  /* The 85vh cap above is for the normal in-page player; inside actual
+     fullscreen it would leave a visible gap at the bottom (85% of the now
+     full-viewport height) instead of truly filling the screen. Covers both
+     the standard pseudo-class and Safari's older prefixed one. */
+  .work__player-frame:fullscreen,
+  .work__player-frame:-webkit-full-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+  }
+  .work__player-frame:fullscreen .work__player,
+  .work__player-frame:-webkit-full-screen .work__player {
+    max-height: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  /* Center play button — visible only while paused; clicking it or the
+     video itself both start playback (see the script tag below). Toggled
+     via a class on the button itself (not a parent .is-playing + descendant
+     selector) — one element, one class, nothing that depends on the
+     cascade reaching through an ancestor correctly. */
+  .work__play-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.15);
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    opacity: 1;
+    transition: opacity 200ms ease;
+  }
+  .work__play-overlay.is-hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .work__play-icon {
+    width: 28px;
+    height: 28px;
+    padding: 20px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    /* Belt-and-braces: lucide's "play" glyph is a filled triangle, not an
+       outlined one like most of the set, so force fill explicitly rather
+       than relying on the icon's own default picking up currentColor —
+       an icon with no visible fill would leave exactly this circular
+       backdrop showing with nothing recognizable inside it. */
+    color: #fff;
+    fill: currentColor;
+    stroke: currentColor;
+    box-sizing: content-box;
+  }
+
+  /* Bottom control bar — always visible (not hover-gated), so it behaves
+     the same on touch devices as with a mouse. */
+  .work__controls {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 0.4rem 1rem 0.75rem;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+  }
+  .work__seek {
+    appearance: none;
+    -webkit-appearance: none;
+    display: block;
+    width: 100%;
+    height: 3px;
+    margin: 0 0 0.6rem;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .work__seek::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: #fff;
+    margin-top: -4px;
+    transition: transform 150ms ease;
+  }
+  .work__seek:hover::-webkit-slider-thumb {
+    transform: scale(1.3);
+  }
+  .work__seek::-moz-range-thumb {
+    width: 11px;
+    height: 11px;
+    border: none;
+    border-radius: 50%;
+    background: #fff;
+  }
+  .work__seek::-moz-range-track {
+    height: 3px;
+    background: transparent;
+    border-radius: 999px;
+  }
+  .work__controls-row {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+  }
+  .work__time {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .work__controls-right {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin-left: auto;
+  }
+  .work__control {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: none;
+    border: none;
+    padding: 0;
+    color: #fff;
+    cursor: pointer;
+    transition: opacity 200ms ease;
+  }
+  .work__control:hover {
+    opacity: 0.7;
+  }
+  .work__control-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+  .work__control--play .work__control-icon {
+    width: 18px;
+    height: 18px;
+  }
+  /* Enter/exit icon pairs, toggled by the button's own aria-pressed — no
+     JS class needed, one attribute selector covers every toggle button
+     (play/pause, sound, fullscreen). */
+  .work__control-icon--exit {
+    display: none;
+  }
+  [aria-pressed='true'] .work__control-icon--enter {
+    display: none;
+  }
+  [aria-pressed='true'] .work__control-icon--exit {
+    display: block;
+  }
+  .work__control--text {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .work {
+    padding-bottom: 4rem;
+  }
+  .work__gallery {
+    padding: 3rem 1.5rem 0;
+  }
+  .work__gallery h2 {
+    font-size: clamp(1.25rem, 1rem + 1.5vw, 1.75rem);
+    margin-bottom: 1.5rem;
+  }
+  .work__gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+  }
+  .work__gallery-photo {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    background: var(--surface);
+  }
+</style>
+
+<script>
+  const video = document.getElementById('work-player') as HTMLVideoElement | null;
+  const frame = document.getElementById('player-frame') as HTMLElement | null;
+  const playOverlay = document.getElementById('play-overlay') as HTMLButtonElement | null;
+  const playToggle = document.getElementById('play-toggle') as HTMLButtonElement | null;
+  const seek = document.getElementById('seek') as HTMLInputElement | null;
+  const timeDisplay = document.getElementById('time-display') as HTMLElement | null;
+  const soundToggle = document.getElementById('sound-toggle') as HTMLButtonElement | null;
+  const soundLabel = document.getElementById('sound-label') as HTMLElement | null;
+  const fullscreenToggle = document.getElementById('fullscreen-toggle') as HTMLButtonElement | null;
+  const qualityToggle = document.getElementById('quality-toggle') as HTMLButtonElement | null;
+
+  if (video && frame) {
+    const formatTime = (seconds: number): string => {
+      if (!Number.isFinite(seconds)) return '00:00';
+      const m = Math.floor(seconds / 60);
+      const s = Math.floor(seconds % 60);
+      return `${m}:${s.toString().padStart(2, '0')}`;
+    };
+
+    // ---- Play/pause: video click, the center overlay, and the bottom
+    // bar's own play/pause button all do the same thing — state lives on
+    // the <video> element itself, everything else just listens for its
+    // play/pause events and reflects them, rather than each control
+    // tracking its own local "is playing" flag. ----
+    const togglePlay = () => {
+      if (video.paused) video.play().catch(() => {});
+      else video.pause();
+    };
+    video.addEventListener('click', togglePlay);
+    playOverlay?.addEventListener('click', togglePlay);
+    playToggle?.addEventListener('click', togglePlay);
+    video.addEventListener('play', () => {
+      playOverlay?.classList.add('is-hidden');
+      playToggle?.setAttribute('aria-pressed', 'true');
+    });
+    video.addEventListener('pause', () => {
+      playOverlay?.classList.remove('is-hidden');
+      playToggle?.setAttribute('aria-pressed', 'false');
+    });
+
+    // ---- Progress bar + time display ----
+    // The filled portion is a background gradient recomputed on every
+    // timeupdate — a plain <input type="range"> has no built-in concept of
+    // "played vs. remaining", so this is what actually paints that
+    // distinction rather than just a flat track.
+    const updateSeekFill = (pct: number) => {
+      if (!seek) return;
+      seek.style.background = `linear-gradient(to right, #fff ${pct}%, rgba(255, 255, 255, 0.3) ${pct}%)`;
+    };
+    video.addEventListener('timeupdate', () => {
+      if (!video.duration) return;
+      const pct = (video.currentTime / video.duration) * 100;
+      if (seek) seek.value = pct.toString();
+      updateSeekFill(pct);
+      if (timeDisplay) timeDisplay.textContent = `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
+    });
+    video.addEventListener('loadedmetadata', () => {
+      if (timeDisplay) timeDisplay.textContent = `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
+    });
+    seek?.addEventListener('input', () => {
+      if (!video.duration) return;
+      const pct = Number(seek.value);
+      video.currentTime = (pct / 100) * video.duration;
+      updateSeekFill(pct);
+    });
+
+    // ---- Sound ----
+    soundToggle?.addEventListener('click', () => {
+      video.muted = !video.muted;
+      soundToggle.setAttribute('aria-pressed', video.muted ? 'true' : 'false');
+      if (soundLabel) {
+        soundLabel.textContent = (video.muted ? soundToggle.dataset.labelOff : soundToggle.dataset.labelOn) ?? soundLabel.textContent;
+      }
+    });
+
+    // ---- Fullscreen ----
+    // Fullscreens the frame (video + custom controls together), not the
+    // bare <video> — fullscreening the video element alone would hand
+    // control back to the browser's own native chrome, defeating the
+    // point of building a custom one. Prefixed fallbacks are for Safari
+    // (desktop Safari needs webkitRequestFullscreen on some versions) and
+    // old Firefox/Edge; iOS Safari has no Fullscreen API for arbitrary
+    // elements at all — video.webkitEnterFullscreen() is the only
+    // fullscreen it offers, which hands off to the native OS player and
+    // loses the custom controls, but that's iOS's own restriction, not
+    // something a web API can work around.
+    type FullscreenFrame = HTMLElement & {
+      webkitRequestFullscreen?: () => void;
+      mozRequestFullScreen?: () => void;
+      msRequestFullscreen?: () => void;
+    };
+    type FullscreenDocument = Document & {
+      webkitExitFullscreen?: () => void;
+      webkitFullscreenElement?: Element | null;
+      mozCancelFullScreen?: () => void;
+      mozFullScreenElement?: Element | null;
+      msExitFullscreen?: () => void;
+      msFullscreenElement?: Element | null;
+    };
+    type FullscreenVideo = HTMLVideoElement & { webkitEnterFullscreen?: () => void };
+
+    const fsFrame = frame as FullscreenFrame;
+    const fsDoc = document as FullscreenDocument;
+    const fsVideo = video as FullscreenVideo;
+
+    const currentFullscreenElement = (): Element | null =>
+      document.fullscreenElement ??
+      fsDoc.webkitFullscreenElement ??
+      fsDoc.mozFullScreenElement ??
+      fsDoc.msFullscreenElement ??
+      null;
+
+    const enterFullscreen = () => {
+      const request =
+        fsFrame.requestFullscreen?.bind(fsFrame) ??
+        fsFrame.webkitRequestFullscreen?.bind(fsFrame) ??
+        fsFrame.mozRequestFullScreen?.bind(fsFrame) ??
+        fsFrame.msRequestFullscreen?.bind(fsFrame);
+      if (request) request();
+      else fsVideo.webkitEnterFullscreen?.();
+    };
+    const leaveFullscreen = () => {
+      const exit =
+        document.exitFullscreen?.bind(document) ??
+        fsDoc.webkitExitFullscreen?.bind(document) ??
+        fsDoc.mozCancelFullScreen?.bind(document) ??
+        fsDoc.msExitFullscreen?.bind(document);
+      exit?.();
+    };
+
+    fullscreenToggle?.addEventListener('click', () => {
+      if (currentFullscreenElement()) leaveFullscreen();
+      else enterFullscreen();
+    });
+    ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach((name) => {
+      document.addEventListener(name, () => {
+        fullscreenToggle?.setAttribute('aria-pressed', currentFullscreenElement() === frame ? 'true' : 'false');
+      });
+    });
+
+    // ---- Quality toggle: swaps the <video> source between SD/HD in
+    // place, preserving playback position and play state — waits for the
+    // new source's metadata to load before seeking, since setting
+    // currentTime immediately after changing src is unreliable (duration/
+    // seekable range isn't known yet). ----
+    if (qualityToggle) {
+      let isHd = false;
+      qualityToggle.addEventListener('click', () => {
+        const time = video.currentTime;
+        const wasPlaying = !video.paused;
+        isHd = !isHd;
+        video.src = (isHd ? video.dataset.hd : video.dataset.sd) ?? video.src;
+        video.addEventListener(
+          'loadedmetadata',
+          () => {
+            video.currentTime = time;
+            if (wasPlaying) video.play().catch(() => {});
+          },
+          { once: true }
+        );
+        qualityToggle.textContent =
+          (isHd ? qualityToggle.dataset.labelSd : qualityToggle.dataset.labelHd) ?? qualityToggle.textContent;
+      });
+    }
+  }
+</script>

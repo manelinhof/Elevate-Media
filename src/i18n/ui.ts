@@ -49,8 +49,15 @@ export const ui = {
     'about.social.stat': '~19.000 seguidores e mais de 1.400 publicações no Instagram', // TODO(pt-review)
     'about.social.cta': 'Segue-me', // TODO(pt-review)
 
-    'work.back': 'Voltar aos trabalhos',
     'work.watchHd': 'Ver em HD',
+    'work.watchSd': 'Ver em SD', // TODO(pt-review)
+    'work.play': 'Reproduzir', // TODO(pt-review)
+    'work.pause': 'Pausar', // TODO(pt-review)
+    'work.soundOn': 'Som: Ligado', // TODO(pt-review)
+    'work.soundOff': 'Som: Desligado', // TODO(pt-review)
+    'work.fullscreen': 'Ecrã inteiro', // TODO(pt-review)
+    'work.about': 'Sobre o projeto', // TODO(pt-review)
+    'work.gallery': 'Bastidores', // TODO(pt-review)
     'work.notFound': 'Projeto não encontrado.',
 
     'gallery.passcodeHeading': 'Esta galeria está protegida',
@@ -98,8 +105,15 @@ export const ui = {
     'about.social.stat': '~19,000 followers and 1,400+ posts on Instagram',
     'about.social.cta': 'Follow along',
 
-    'work.back': 'Back to work',
     'work.watchHd': 'Watch in HD',
+    'work.watchSd': 'Watch in SD',
+    'work.play': 'Play',
+    'work.pause': 'Pause',
+    'work.soundOn': 'Sound: On',
+    'work.soundOff': 'Sound: Off',
+    'work.fullscreen': 'Full screen',
+    'work.about': 'About this project',
+    'work.gallery': 'Behind the scenes',
     'work.notFound': 'Project not found.',
 
     'gallery.passcodeHeading': 'This gallery is protected',
