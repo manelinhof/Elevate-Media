@@ -155,6 +155,7 @@ const clusterPositions = computeClusterLayout(projects.length);
   // Reduced-motion visitors skip this entirely and keep the SSR resting
   // layout from computeClusterLayout (t = i/count, at time = 0) — no script
   // attempts to run, consistent with every other motion gate in this codebase.
+  import gsap from 'gsap';
   import {
     buildEllipseLUT,
     getEllipsePoint,
@@ -172,6 +173,40 @@ const clusterPositions = computeClusterLayout(projects.length);
   const logo = document.querySelector<HTMLElement>('.cluster-logo');
 
   if (tiles.length > 0 && !prefersReducedMotion()) {
+    // ---- Entrance: the cluster "blooms" outward from the center on load ----
+    // Animates the inner .tile (opacity/scale), never .tile-position itself —
+    // .tile-position's own transform is owned entirely by the spiral's
+    // --x/--y custom properties (see the render loop below); animating a
+    // transform directly on it here would fight that and desync its
+    // position. The child .tile has no competing transform of its own at
+    // rest (only ever on :hover), so it's safe to animate independently —
+    // clearProps strips the tween's inline styles once it finishes so that
+    // :hover scaling and the dim-siblings opacity toggle (ProjectTile.astro)
+    // both still work normally afterward; a lingering inline style would
+    // otherwise permanently block them (inline always beats a stylesheet
+    // rule, regardless of selector).
+    // Runs concurrently with the spiral's own rAF loop below, not before
+    // it — tiles are already gently drifting along their path while they
+    // bloom in, rather than sitting static-then-starting, which reads as
+    // more alive for a page that's meant to feel constantly in motion.
+    const tileEls = tiles.map((pos) => pos.querySelector<HTMLElement>('.tile')).filter((el) => el !== null);
+    const introTl = gsap.timeline({ delay: 0.15 });
+    if (logo) {
+      introTl.from(logo, { opacity: 0, scale: 0.3, duration: 0.6, ease: 'back.out(1.7)' }, 0);
+    }
+    introTl.from(
+      tileEls,
+      {
+        opacity: 0,
+        scale: 0.3,
+        duration: 0.85,
+        ease: 'back.out(1.6)',
+        stagger: { each: 0.045, from: 'center' },
+        clearProps: 'opacity,transform',
+      },
+      0.05
+    );
+
     const BASE_SPEED = 0.015; // idle drift, cipher's exact constant
     const WHEEL_INFLUENCE = 0.0006; // tunable — how much wheel deltaY nudges the drift
     const VELOCITY_DECAY = 0.6; // per-frame decay of the scroll bonus, cipher's own constant

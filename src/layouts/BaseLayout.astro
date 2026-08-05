@@ -70,13 +70,27 @@ const whatsappHref = `https://wa.me/${OPERATOR.whatsapp.replace(/\D/g, '')}`;
       </a>
 
       <div class="site-header__center">
-        <a class:list={['nav-link', { active: isWorkActive }]} href={workHref}>{t('nav.work')}</a>
+        <a class:list={['nav-link', { active: isWorkActive }]} href={workHref} aria-label={t('nav.work')}>
+          <span class="nav-link__chars" aria-hidden="true">
+            {t('nav.work').split('').map((c) => <span class="char">{c}</span>)}
+          </span>
+        </a>
       </div>
 
       <div class="site-header__right">
-        <a class:list={['nav-link', { active: isServicesActive }]} href={servicesHref}>{t('nav.services')}</a>
-        <a class:list={['nav-link', { active: isAboutActive }]} href={aboutHref}>{t('nav.about')}</a>
-        <a class="nav-link" href={otherPath}>{t('lang.switch')}</a>
+        <a class:list={['nav-link', { active: isServicesActive }]} href={servicesHref} aria-label={t('nav.services')}>
+          <span class="nav-link__chars" aria-hidden="true">
+            {t('nav.services').split('').map((c) => <span class="char">{c}</span>)}
+          </span>
+        </a>
+        <a class:list={['nav-link', { active: isAboutActive }]} href={aboutHref} aria-label={t('nav.about')}>
+          <span class="nav-link__chars" aria-hidden="true">
+            {t('nav.about').split('').map((c) => <span class="char">{c}</span>)}
+          </span>
+        </a>
+        <a class="nav-link nav-link--icon" href={otherPath} aria-label={t('lang.switch')}>
+          <Icon name="lucide:globe" class="nav-link__icon" aria-hidden="true" />
+        </a>
         <button
           type="button"
           class="theme-toggle"
@@ -126,7 +140,12 @@ const whatsappHref = `https://wa.me/${OPERATOR.whatsapp.replace(/\D/g, '')}`;
     top: 0;
     z-index: 10;
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    /* Equal 1fr outer columns (not auto) so the center column (Works) lands
+       on the header's true midpoint regardless of how wide the brand vs.
+       right-side nav are — matching the Home cluster's spinning logo, which
+       centers on the actual viewport, not on the leftover space between
+       unequal siblings. */
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
     gap: 1.5rem;
     padding: 1.25rem 1.5rem;
@@ -176,65 +195,110 @@ const whatsappHref = `https://wa.me/${OPERATOR.whatsapp.replace(/\D/g, '')}`;
     justify-self: end;
   }
 
-  /* Hover and active share one visual language (the underline), rather
-     than hover getting one treatment and active another. The GSAP
-     magnetic-hover script (below) moves the link itself via transform;
-     this CSS transform is only the fallback for non-hover-capable/reduced-
-     motion contexts where the JS effect never attaches. */
+  /* Hover and active share one visual language (the underline). The
+     scramble-text hover (script below) rewrites each .char span's content
+     in place, character by character; this component just needs to render
+     normally when JS never attaches (non-hover-capable, reduced-motion, or
+     no-JS) — the .nav-link__chars wrapper is plain inline text otherwise. */
   .nav-link {
     position: relative;
     display: inline-block;
     padding-block: 0.25rem;
     text-decoration: none;
-    color: var(--muted);
+    color: var(--fg);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     font-size: 0.85rem;
-    transition:
-      color 200ms ease,
-      letter-spacing 200ms ease;
+    transition: color 200ms ease;
   }
-  .nav-link::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 2px;
-    background: var(--class-b);
-    transform: scaleX(0);
-    transform-origin: center;
-    transition: transform 250ms ease;
+  /* aria-hidden (see markup) — the real accessible name is the <a>'s own
+     aria-label, set to the plain, unsplit string. */
+  .nav-link__chars {
+    display: inline-block;
+  }
+  /* Fixed width per character slot, not just per word: a min-width on the
+     whole word only sets a floor, and random scramble letters (drawn from
+     the full alphabet) render wider than a specific word's own letters
+     often enough (e.g. "About", "Português") to blow past it anyway,
+     reflowing this flex nav row and shifting sibling links. A fixed
+     per-character width can't grow no matter which letter is showing, so
+     the word's total width — and the row's layout — never moves. */
+  .nav-link__chars .char {
+    display: inline-block;
+    width: 0.72em;
+    text-align: center;
   }
   .nav-link:hover {
-    color: var(--fg);
-    letter-spacing: 0.09em;
-  }
-  .nav-link:hover::after,
-  .nav-link.active::after {
-    transform: scaleX(1);
+    color: var(--muted);
   }
   .nav-link.active {
-    color: var(--class-b);
+    /* Gold, matching the CTA — not --class-b. Still state (current page),
+       just using the accent that's now the site's "premium" signal instead
+       of the VFR blue, since the two now sit right next to each other in
+       the header and blue read as mismatched next to the gold CTA. */
+    color: var(--accent-gold);
+  }
+  /* Language switch: an icon, not text, so it skips the scramble-hover
+     script entirely (that script only touches .char spans — see below) and
+     just gets the plain color transition every other .nav-link has. */
+  .nav-link--icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .nav-link__icon {
+    width: 18px;
+    height: 18px;
   }
 
   /* The one deliberate "primary action" on the page — a solid-fill pill
      rather than the shared underline treatment, so it reads as the single
-     thing to click, not another nav destination. Still state (this is the
-     one CTA), not decorative variety — see CLAUDE.md "Colour is state". */
+     thing to click, not another nav destination. Gold, not the blue/magenta
+     state accents: reuses --accent-gold (the logo's existing brand-accent
+     exception — see global.css) rather than adding a third colour. Fully
+     rounded and a hover shine-sweep for the "premium" feel, both pure CSS —
+     see the ::before pseudo-element below for the sweep mechanics. */
   .nav-cta {
-    padding: 0.5rem 1.1rem;
-    background: var(--class-b);
-    color: #fff;
-  }
-  .nav-cta::after {
-    display: none;
+    position: relative;
+    overflow: hidden;
+    padding: 0.55rem 1.3rem;
+    border-radius: 999px;
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent-gold) 85%, white),
+      var(--accent-gold) 55%,
+      color-mix(in srgb, var(--accent-gold) 80%, black)
+    );
+    color: #171200;
+    box-shadow: 0 2px 10px color-mix(in srgb, var(--accent-gold) 35%, transparent);
+    transition:
+      transform 300ms ease,
+      box-shadow 300ms ease;
   }
   .nav-cta:hover {
-    color: #fff;
-    letter-spacing: 0.06em;
-    opacity: 0.9;
+    color: #171200;
+    transform: scale(1.05);
+    box-shadow: 0 4px 18px color-mix(in srgb, var(--accent-gold) 55%, transparent);
+  }
+  /* The shine sweep: a skewed light band sitting just off the button's left
+     edge, translated across on hover. Skipped by the scramble-hover script
+     (it only touches .char spans, which .nav-cta never has) and neutralized
+     automatically under prefers-reduced-motion (global.css kills the
+     transition duration, so it just doesn't visibly sweep). */
+  .nav-cta::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -60%;
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+    transform: skewX(-20deg);
+    transition: left 550ms ease;
+  }
+  .nav-cta:hover::before {
+    left: 130%;
   }
 
   .theme-toggle {
@@ -390,18 +454,62 @@ const whatsappHref = `https://wa.me/${OPERATOR.whatsapp.replace(/\D/g, '')}`;
     });
   }
 
-  // ---- GSAP magnetic hover (pointer-capable devices only) ----
+  // ---- Scramble-text hover (pointer-capable devices only) ----
+  // Each character cycles through random letters before resolving to the
+  // real one, left to right — .nav-cta (the one filled button) is skipped
+  // so its label stays stable and readable as a call to action.
   if (!reducedMotion && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    const SCRAMBLE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const DURATION = 1100; // ms — slow, deliberate reveal
+    const FLICKER_INTERVAL = 55; // ms between random-character swaps per span
+
     navLinks.forEach((link) => {
-      link.addEventListener('mousemove', (event) => {
-        const rect = link.getBoundingClientRect();
-        const x = event.clientX - rect.left - rect.width / 2;
-        const y = event.clientY - rect.top - rect.height / 2;
-        gsap.to(link, { x: x * 0.35, y: y * 0.5, duration: 0.3, ease: 'power2.out' });
+      if (link.classList.contains('nav-cta')) return;
+      const spans = [...link.querySelectorAll<HTMLSpanElement>('.char')];
+      if (spans.length === 0) return;
+      const finalChars = spans.map((span) => span.textContent ?? '');
+      let frame = 0;
+
+      const settle = () => {
+        cancelAnimationFrame(frame);
+        spans.forEach((span, i) => {
+          span.textContent = finalChars[i];
+        });
+      };
+
+      link.addEventListener('mouseenter', () => {
+        cancelAnimationFrame(frame);
+        const start = performance.now();
+        let lastFlicker = 0;
+        const step = (now: number) => {
+          const elapsed = now - start;
+          const dueForFlicker = now - lastFlicker >= FLICKER_INTERVAL;
+          if (dueForFlicker) lastFlicker = now;
+          let settled = true;
+          spans.forEach((span, i) => {
+            // Later characters start resolving later, so the reveal reads
+            // left-to-right instead of every letter landing at once.
+            const revealAt = (i / spans.length) * DURATION * 0.7 + DURATION * 0.3;
+            if (elapsed >= revealAt) {
+              span.textContent = finalChars[i];
+            } else {
+              settled = false;
+              // Throttled so letters flicker at a calm, readable pace
+              // instead of re-randomizing every animation frame (~16ms).
+              if (dueForFlicker) {
+                span.textContent = SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
+              }
+            }
+          });
+          if (!settled) frame = requestAnimationFrame(step);
+        };
+        frame = requestAnimationFrame(step);
       });
-      link.addEventListener('mouseleave', () => {
-        gsap.to(link, { x: 0, y: 0, duration: 0.4, ease: 'elastic.out(1, 0.4)' });
-      });
+
+      // Always snap back to the real word on mouseleave — otherwise a quick
+      // hover that interrupts the scramble mid-flight would leave the link
+      // showing garbled text at rest.
+      link.addEventListener('mouseleave', settle);
     });
   }
 

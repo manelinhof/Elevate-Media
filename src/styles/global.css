@@ -54,6 +54,16 @@
      dark mode looks unchanged; only light mode below overrides it. */
   --logo-color: var(--fg);
 
+  /* Same brand-accent exception as --logo-color, reused for the header's
+     CTA button (.nav-cta) rather than invented as a new one — this is
+     still "the one deliberate accent," just applied in a second place.
+     Unlike --logo-color, this is NOT overridden per-theme: the CTA should
+     read as gold in both light and dark mode, not just light mode (the
+     logo's light-mode-only override exists for a different reason — its
+     baked-in asset colour needing contrast against a light background —
+     that doesn't apply to a plain solid-fill button). */
+  --accent-gold: #eab308;
+
   --font-sans: 'Switzer', system-ui, -apple-system, sans-serif;
 }
 
