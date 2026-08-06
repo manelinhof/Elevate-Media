@@ -13,14 +13,22 @@ interface Props {
 const { project, lang, mediaBase } = Astro.props;
 const t = useTranslations(lang);
 const posterSrc = mediaUrl(mediaBase, project.poster);
-const loopSrc = mediaUrl(mediaBase, project.loop);
+// heroLoop (2160p, still silent/6s — see its own comment in lib/projects.ts)
+// wins when present; falls back to the same small loop grid tiles use
+// otherwise. Still never the full reel — see the comment below.
+const loopSrc = mediaUrl(mediaBase, project.heroLoop ?? project.loop);
 ---
 
 <!--
   Same poster→loop behavior as grid tiles (respects prefers-reduced-motion
   and saveData via motion-prefs.ts), but the loop can start immediately on
   load instead of waiting for an IntersectionObserver — the hero is always
-  in the initial viewport.
+  in the initial viewport. May be a higher-res loop than tiles get
+  (project.heroLoop, when the project has one) since this single banner
+  eats way less aggregate bandwidth than every tile in a grid would at the
+  same resolution — still silent, still ~6s, never the full reel with
+  audio (CLAUDE.md: "any change that autoplays full reels in the grid is a
+  regression" — this is a deliberate, bounded exception to that, not one).
 -->
 <section class="hero">
   <div class="hero__media">

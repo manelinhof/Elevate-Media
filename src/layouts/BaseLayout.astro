@@ -1,6 +1,6 @@
 ---
 import { Icon } from 'astro-icon/components';
-import { BRAND, OPERATOR } from '../data/site';
+import { BRAND } from '../data/site';
 import { useTranslations } from '../i18n/utils';
 import type { Lang } from '../i18n/ui';
 import '../styles/global.css';
@@ -31,16 +31,9 @@ const otherPath = Astro.url.pathname.replace(`/${lang}/`, `/${otherLang}/`);
 const homeHref = `/${lang}/`;
 const workHref = `/${lang}/work/`;
 const aboutHref = `/${lang}/about/`;
-const servicesHref = `/${lang}/services/`;
 const isWorkActive = Astro.url.pathname.includes('/work');
 const isAboutActive = Astro.url.pathname.includes('/about');
-const isServicesActive = Astro.url.pathname.includes('/services');
 const year = new Date().getFullYear();
-
-// OPERATOR.whatsapp is still the 'TODO' placeholder from src/data/site.ts
-// (CLAUDE.md open task 5) — this link is intentionally non-functional until
-// the real number is filled in.
-const whatsappHref = `https://wa.me/${OPERATOR.whatsapp.replace(/\D/g, '')}`;
 ---
 
 <!doctype html>
@@ -87,11 +80,6 @@ const whatsappHref = `https://wa.me/${OPERATOR.whatsapp.replace(/\D/g, '')}`;
       </div>
 
       <div class="site-header__right">
-        <a class:list={['nav-link', { active: isServicesActive }]} href={servicesHref} aria-label={t('nav.services')}>
-          <span class="nav-link__chars" aria-hidden="true">
-            {t('nav.services').split('').map((c) => <span class="char">{c}</span>)}
-          </span>
-        </a>
         <a class:list={['nav-link', { active: isAboutActive }]} href={aboutHref} aria-label={t('nav.about')}>
           <span class="nav-link__chars" aria-hidden="true">
             {t('nav.about').split('').map((c) => <span class="char">{c}</span>)}
@@ -104,16 +92,21 @@ const whatsappHref = `https://wa.me/${OPERATOR.whatsapp.replace(/\D/g, '')}`;
           type="button"
           class="theme-toggle"
           id="theme-toggle"
+          role="switch"
+          aria-checked="true"
           aria-label={t('theme.toggleLight')}
           data-label-light={t('theme.toggleLight')}
           data-label-dark={t('theme.toggleDark')}
         >
-          <Icon name="lucide:sun" class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true" />
-          <Icon name="lucide:moon" class="theme-toggle__icon theme-toggle__icon--moon" aria-hidden="true" />
+          <span class="theme-toggle__track">
+            <Icon name="lucide:sun" class="theme-toggle__icon" aria-hidden="true" />
+            <Icon name="lucide:moon" class="theme-toggle__icon" aria-hidden="true" />
+            <span class="theme-toggle__thumb" aria-hidden="true"></span>
+          </span>
         </button>
-        <a class="nav-link nav-cta" href={whatsappHref} target="_blank" rel="noopener noreferrer">
+        <button type="button" class="nav-link nav-cta" id="contact-open">
           {t('nav.contact')}
-        </a>
+        </button>
       </div>
 
       <button
@@ -140,6 +133,73 @@ const whatsappHref = `https://wa.me/${OPERATOR.whatsapp.replace(/\D/g, '')}`;
         <span class="site-footer__rights">© {year} {BRAND.displayName}</span>
       </footer>
     )}
+
+    <!--
+      Native <dialog>, not a hand-rolled modal — free focus trap, ESC-to-
+      close, and ::backdrop styling. The submit button is a plain
+      type="submit" (no formmethod override) so the script below can
+      preventDefault and POST via fetch; the close (X) button uses
+      formmethod="dialog" instead, which the browser closes the dialog for
+      natively with no JS needed.
+    -->
+    <dialog id="contact-modal" class="contact-modal">
+      <form id="contact-form" class="contact-form" novalidate>
+        <button
+          type="submit"
+          formmethod="dialog"
+          class="contact-form__close"
+          aria-label={t('contact.close')}
+        >
+          <Icon name="lucide:x" aria-hidden="true" />
+        </button>
+        <h2 class="contact-form__heading">{t('contact.heading')}</h2>
+        <p class="contact-form__intro">{t('contact.intro')}</p>
+
+        <label class="contact-form__field">
+          <span class="label">{t('contact.name')}</span>
+          <input type="text" name="name" required autocomplete="name" />
+        </label>
+        <label class="contact-form__field">
+          <span class="label">{t('contact.email')}</span>
+          <input type="email" name="email" required autocomplete="email" />
+        </label>
+        <label class="contact-form__field">
+          <span class="label">{t('contact.phone')}</span>
+          <input type="tel" name="phone" autocomplete="tel" />
+        </label>
+        <label class="contact-form__field">
+          <span class="label">{t('contact.message')}</span>
+          <textarea name="message" required rows="4"></textarea>
+        </label>
+
+        <!-- Honeypot — invisible and unreachable by keyboard for real
+             visitors (aria-hidden, tabindex="-1", off-screen via CSS).
+             Bots that blanket-fill every field trip it; checked
+             server-side in src/pages/api/contact.ts. -->
+        <label class="contact-form__hp" aria-hidden="true">
+          Company
+          <input type="text" name="company" tabindex="-1" autocomplete="off" />
+        </label>
+
+        <button
+          type="submit"
+          class="contact-form__submit"
+          id="contact-submit"
+          data-label-idle={t('contact.submit')}
+          data-label-sending={t('contact.sending')}
+        >
+          {t('contact.submit')}
+        </button>
+        <p
+          class="contact-form__status"
+          id="contact-status"
+          role="status"
+          aria-live="polite"
+          data-success={t('contact.success')}
+          data-error={t('contact.error')}
+        ></p>
+      </form>
+    </dialog>
   </body>
 </html>
 
@@ -334,20 +394,43 @@ const whatsappHref = `https://wa.me/${OPERATOR.whatsapp.replace(/\D/g, '')}`;
   .theme-toggle {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
     background: none;
     border: none;
-    padding: 0.3rem;
-    color: var(--muted);
+    padding: 0;
     cursor: pointer;
-    transition: color 200ms ease;
   }
-  .theme-toggle:hover {
-    color: var(--fg);
+  /* Both icons stay put — the thumb sliding over one is the "on" state,
+     not a swap. Thumb position itself is driven globally off
+     :root[data-theme] (see global.css) so it's correct pre-paint, before
+     this component's own script has run. */
+  .theme-toggle__track {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 44px;
+    height: 22px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--surface);
+    border: 1px solid var(--border);
   }
   .theme-toggle__icon {
-    width: 18px;
-    height: 18px;
+    position: relative;
+    z-index: 1;
+    width: 12px;
+    height: 12px;
+    color: var(--muted);
+  }
+  .theme-toggle__thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent-gold);
+    transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   .menu-toggle {
@@ -393,6 +476,134 @@ const whatsappHref = `https://wa.me/${OPERATOR.whatsapp.replace(/\D/g, '')}`;
   .site-footer__rights {
     text-transform: uppercase;
     letter-spacing: 0.04em;
+  }
+
+  /* Native <dialog> centers itself via UA styles already; this just sets
+     size/colour/shape. ::backdrop is the dimming layer the browser paints
+     behind it — not achievable by styling the dialog itself. */
+  .contact-modal {
+    width: min(480px, calc(100vw - 3rem));
+    max-height: calc(100vh - 4rem);
+    padding: 0;
+    border: none;
+    border-radius: 12px;
+    background: var(--bg);
+    color: var(--fg);
+  }
+  .contact-modal::backdrop {
+    background: rgba(0, 0, 0, 0.6);
+  }
+  .contact-form {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 2rem;
+  }
+  .contact-form__close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    transition: color 200ms ease;
+  }
+  .contact-form__close:hover {
+    color: var(--fg);
+  }
+  .contact-form__close svg {
+    width: 18px;
+    height: 18px;
+  }
+  .contact-form__heading {
+    margin: 0;
+    padding-right: 2rem;
+  }
+  .contact-form__intro {
+    margin: -0.5rem 0 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+  .contact-form__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .contact-form__field input,
+  .contact-form__field textarea {
+    font-family: inherit;
+    font-size: 0.95rem;
+    color: var(--fg);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.6rem 0.75rem;
+    resize: vertical;
+  }
+  .contact-form__field input:focus,
+  .contact-form__field textarea:focus {
+    outline: 2px solid var(--accent-gold);
+    outline-offset: -1px;
+  }
+  /* Off-screen, not display:none — a bot's naive "is this field visible"
+     check (offsetWidth/height) is easier to fool than one that actually
+     reads computed position, and this defeats both anyway since it's
+     simply never in the viewport. */
+  .contact-form__hp {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+  .contact-form__submit {
+    margin-top: 0.5rem;
+    padding: 0.7rem 1.5rem;
+    border: none;
+    border-radius: 999px;
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent-gold) 85%, white),
+      var(--accent-gold) 55%,
+      color-mix(in srgb, var(--accent-gold) 80%, black)
+    );
+    color: #171200;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition:
+      transform 200ms ease,
+      opacity 200ms ease;
+  }
+  .contact-form__submit:hover {
+    transform: scale(1.02);
+  }
+  .contact-form__submit:disabled {
+    opacity: 0.6;
+    cursor: default;
+    transform: none;
+  }
+  .contact-form__status {
+    margin: 0;
+    min-height: 1.2em;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .contact-form__status.is-error {
+    color: var(--class-e);
+  }
+  .contact-form__status.is-success {
+    color: var(--accent-gold);
   }
 
   /* Narrow viewports: collapse center/right nav into a hamburger-triggered
@@ -547,17 +758,22 @@ const whatsappHref = `https://wa.me/${OPERATOR.whatsapp.replace(/\D/g, '')}`;
   const themeToggle = document.getElementById('theme-toggle') as HTMLButtonElement;
   const root = document.documentElement;
 
-  const applyThemeLabel = () => {
+  // aria-checked="true" means dark — matches the switch's SSR default and
+  // the thumb-position CSS in global.css (:root[data-theme]-keyed, so it's
+  // already correct pre-paint; this just keeps the accessible state and
+  // the label in sync with it after the fact).
+  const applyThemeState = () => {
     const isLight = root.dataset.theme === 'light';
+    themeToggle.setAttribute('aria-checked', isLight ? 'false' : 'true');
     themeToggle.setAttribute('aria-label', (isLight ? themeToggle.dataset.labelDark : themeToggle.dataset.labelLight) ?? '');
   };
-  applyThemeLabel();
+  applyThemeState();
 
   themeToggle.addEventListener('click', () => {
     const next = root.dataset.theme === 'light' ? 'dark' : 'light';
     root.dataset.theme = next;
     localStorage.setItem('theme', next);
-    applyThemeLabel();
+    applyThemeState();
   });
 
   // ---- Mobile menu toggle ----
@@ -585,4 +801,66 @@ const whatsappHref = `https://wa.me/${OPERATOR.whatsapp.replace(/\D/g, '')}`;
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') closeMenu();
   });
+
+  // ---- Contact modal ----
+  const contactOpen = document.getElementById('contact-open') as HTMLButtonElement | null;
+  const contactModal = document.getElementById('contact-modal') as HTMLDialogElement | null;
+  const contactForm = document.getElementById('contact-form') as HTMLFormElement | null;
+  const contactSubmit = document.getElementById('contact-submit') as HTMLButtonElement | null;
+  const contactStatus = document.getElementById('contact-status') as HTMLElement | null;
+
+  if (contactOpen && contactModal && contactForm && contactSubmit && contactStatus) {
+    contactOpen.addEventListener('click', () => contactModal.showModal());
+
+    // Click on the ::backdrop lands on the <dialog> element itself (it has
+    // no other content there) — a click on the form/its children never
+    // reaches this listener, since it fires on whatever was actually
+    // clicked. This is the standard way to get "click outside to close"
+    // out of a native dialog, which doesn't do it by default.
+    contactModal.addEventListener('click', (event) => {
+      if (event.target === contactModal) contactModal.close();
+    });
+
+    // Reset to a clean slate each time it's reopened, so a previous
+    // success/error message or filled-in values don't linger.
+    contactModal.addEventListener('close', () => {
+      contactForm.reset();
+      contactStatus.textContent = '';
+      contactStatus.className = 'contact-form__status';
+    });
+
+    contactForm.addEventListener('submit', async (event) => {
+      // The close (X) button is also type="submit" (formmethod="dialog"),
+      // so it fires this same submit event — its default action is what
+      // actually closes the dialog natively. Only intercept the real send
+      // button; let the close button's submit proceed untouched.
+      if ((event.submitter as HTMLButtonElement | null)?.formMethod === 'dialog') return;
+      event.preventDefault();
+      const data = Object.fromEntries(new FormData(contactForm).entries());
+
+      contactSubmit.disabled = true;
+      contactSubmit.textContent = contactSubmit.dataset.labelSending ?? contactSubmit.textContent;
+      contactStatus.textContent = '';
+      contactStatus.className = 'contact-form__status';
+
+      try {
+        const response = await fetch('/api/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        if (!response.ok) throw new Error('request failed');
+
+        contactStatus.textContent = contactStatus.dataset.success ?? '';
+        contactStatus.classList.add('is-success');
+        contactForm.reset();
+      } catch {
+        contactStatus.textContent = contactStatus.dataset.error ?? '';
+        contactStatus.classList.add('is-error');
+      } finally {
+        contactSubmit.disabled = false;
+        contactSubmit.textContent = contactSubmit.dataset.labelIdle ?? contactSubmit.textContent;
+      }
+    });
+  }
 </script>

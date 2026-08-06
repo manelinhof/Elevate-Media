@@ -6,9 +6,20 @@ export interface Project {
   title: { pt: string; en: string };
   poster: string;
   loop: string;
-  reel: { sd: string; hd: string };
+  // uhd is optional — ingest.sh only generates a 4K rendition when the
+  // source footage actually is 4K (see its own comment); older projects
+  // ingested before that check existed, or from sub-4K source, won't have
+  // one. The quality toggle (work/[slug].astro) falls back to a 2-way
+  // SD/HD picker when it's absent, rather than requiring it.
+  reel: { sd: string; hd: string; uhd?: string };
   publishedAt: string;
   featured: boolean;
+  // Optional, higher-res (2160p) sibling of `loop`, generated only when
+  // ingest.sh also generates a 4K reel. Hero.astro (the Works listing
+  // page's banner) prefers this over `loop` when present — see its own
+  // comment for why that's a deliberate exception to "tiles/hero only ever
+  // autoplay the small silent loop", not a full-reel regression.
+  heroLoop?: string;
   // Both optional and hand-added, not part of ingest.sh's output — the
   // owner pastes these in after the fact if/when there's real copy or BTS
   // stills for a project. Absent on every project today; the detail page
@@ -32,6 +43,8 @@ function isProject(value: unknown): value is Project {
   const validBtsPhotos =
     p.btsPhotos === undefined ||
     (Array.isArray(p.btsPhotos) && p.btsPhotos.every((photo) => typeof photo === 'string'));
+  const validUhd = reel?.uhd === undefined || typeof reel.uhd === 'string';
+  const validHeroLoop = p.heroLoop === undefined || typeof p.heroLoop === 'string';
   return (
     typeof p.slug === 'string' &&
     typeof p.category === 'string' &&
@@ -44,7 +57,9 @@ function isProject(value: unknown): value is Project {
     typeof p.publishedAt === 'string' &&
     typeof p.featured === 'boolean' &&
     validDescription &&
-    validBtsPhotos
+    validBtsPhotos &&
+    validHeroLoop &&
+    validUhd
   );
 }
 

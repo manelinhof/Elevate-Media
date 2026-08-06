@@ -107,14 +107,19 @@
   --logo-color: #eab308;
 }
 
-/* Icon swap for the header's theme-toggle button (BaseLayout.astro) — global,
-   not scoped, so it can key off the <html> attribute set by that button's
-   script. Shows the icon for the mode a click would switch *to*. */
-:root[data-theme='light'] .theme-toggle__icon--sun {
-  display: none;
+/* Theme-toggle switch thumb position (BaseLayout.astro) — global, not
+   scoped, so it can key off the <html> attribute the head's inline script
+   sets synchronously before first paint (see BaseLayout.astro's <head>
+   script). A component-scoped rule keyed off the button's own
+   aria-checked would flash to the wrong side on load instead, since that
+   attribute is only set by the deferred module script, after paint. Both
+   icons stay visible now (not swapped) — the thumb sliding over one is
+   what indicates state. */
+:root[data-theme='light'] .theme-toggle__thumb {
+  transform: translateX(0);
 }
-:root:not([data-theme='light']) .theme-toggle__icon--moon {
-  display: none;
+:root:not([data-theme='light']) .theme-toggle__thumb {
+  transform: translateX(22px);
 }
 
 * {

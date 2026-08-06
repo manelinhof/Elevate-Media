@@ -54,16 +54,13 @@ const loopSrc = mediaUrl(mediaBase, project.loop);
     background: var(--surface);
   }
   /* Plain grid tiles (Works page) only — cluster tiles (.tile--spin) have
-     their own hover transform below, already tuned for the spiral layout. */
+     their own hover transform below, already tuned for the spiral layout.
+     No scale-up here on purpose: the hover cue is dimming every other
+     tile (.is-dimmed below), not growing the hovered one. */
   .tile:not(.tile--spin) {
     transition:
-      transform 350ms cubic-bezier(0.22, 1, 0.36, 1),
       opacity 300ms ease,
       filter 300ms ease;
-  }
-  .tile:not(.tile--spin):hover {
-    transform: scale(1.12);
-    z-index: 1;
   }
   /* Set on every other grid tile when one is hovered — same "not the focus"
      treatment as the cluster's .tile--spin.is-dimmed below, see the script
