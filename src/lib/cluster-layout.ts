@@ -18,7 +18,7 @@
 // path is no longer circular. Arc-length parametrization (build a lookup
 // table, walk it by normalized distance) fixes it the same way.
 
-const TILE_WIDTH = 24; // vmin — same fixed size for every tile, see prior fix notes
+const TILE_WIDTH = 30; // vmin — same fixed size for every tile, see prior fix notes
 const TILE_RATIO = 16 / 9;
 
 // Matches cipher.tv's own reference values exactly (pulled from its JS
@@ -29,7 +29,7 @@ const TILE_RATIO = 16 / 9;
 // earlier (that read as each tile spinning in place rather than a legible
 // shared spiral). SCALE just converts their unitless radii into vmin;
 // everything else (ratio, tilt angle) is copied as-is.
-const SCALE = 50;
+const SCALE = 62;
 export const RX_DESKTOP = 0.58 * SCALE;
 export const RY_DESKTOP = 0.32 * SCALE;
 export const TILT_DESKTOP = Math.PI / 7;

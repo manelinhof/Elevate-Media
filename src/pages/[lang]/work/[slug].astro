@@ -21,6 +21,15 @@ if (!project) {
 const mediaBase = Astro.locals.runtime.env.PUBLIC_MEDIA_BASE;
 const sdSrc = mediaUrl(mediaBase, project.reel.sd);
 const hdSrc = mediaUrl(mediaBase, project.reel.hd);
+// Optional — only present when ingest.sh's source-resolution check found
+// the footage actually was 4K (see its own comment). The toggle script
+// below falls back to a 2-way SD/HD cycle when this is undefined.
+const uhdSrc = project.reel.uhd ? mediaUrl(mediaBase, project.reel.uhd) : undefined;
+// Playback always starts at the best available tier, not SD — 4K when the
+// project has one, HD otherwise. The toggle cycle (script below) starts
+// there too, rather than needing a separate "which tier did we open on"
+// calculation.
+const initialSrc = uhdSrc ?? hdSrc;
 const posterSrc = mediaUrl(mediaBase, project.poster);
 const category = CATEGORIES.find((c) => c.id === project.category);
 const publishedDate = new Date(project.publishedAt).toLocaleDateString(lang === 'pt' ? 'pt-PT' : 'en-GB', {
@@ -87,7 +96,8 @@ const description = project.description?.[lang] ?? LOREM_IPSUM;
           preload="metadata"
           data-sd={sdSrc}
           data-hd={hdSrc}
-          src={sdSrc}
+          data-uhd={uhdSrc}
+          src={initialSrc}
           id="work-player"
         ></video>
 
@@ -131,8 +141,9 @@ const description = project.description?.[lang] ?? LOREM_IPSUM;
                 id="quality-toggle"
                 data-label-sd={t('work.watchSd')}
                 data-label-hd={t('work.watchHd')}
+                data-label-uhd={t('work.watch4k')}
               >
-                {t('work.watchHd')}
+                {t('work.watchSd')}
               </button>
               <button type="button" class="work__control work__control--text" id="fullscreen-toggle" aria-pressed="false">
                 <Icon name="lucide:maximize" class="work__control-icon work__control-icon--enter" aria-hidden="true" />
@@ -570,18 +581,32 @@ const description = project.description?.[lang] ?? LOREM_IPSUM;
       });
     });
 
-    // ---- Quality toggle: swaps the <video> source between SD/HD in
-    // place, preserving playback position and play state — waits for the
-    // new source's metadata to load before seeking, since setting
-    // currentTime immediately after changing src is unreliable (duration/
-    // seekable range isn't known yet). ----
+    // ---- Quality toggle: cycles the <video> source through SD → HD →
+    // (4K, only if this project has one) → SD, preserving playback
+    // position and play state — waits for the new source's metadata to
+    // load before seeking, since setting currentTime immediately after
+    // changing src is unreliable (duration/seekable range isn't known
+    // yet). Built from data-sd/data-hd/data-uhd rather than hardcoding a
+    // 2- or 3-way toggle, so it works for both kinds of project without
+    // two separate code paths. ----
     if (qualityToggle) {
-      let isHd = false;
+      const tiers = [
+        { src: video.dataset.sd, label: qualityToggle.dataset.labelSd },
+        { src: video.dataset.hd, label: qualityToggle.dataset.labelHd },
+        ...(video.dataset.uhd ? [{ src: video.dataset.uhd, label: qualityToggle.dataset.labelUhd }] : []),
+      ];
+      // Starts on the best tier (last in the array — SD, HD, then 4K if
+      // present), matching the video's initial src, which is also always
+      // the best available. Whatever the highest tier is, one click always
+      // wraps back around to SD, which is why the button's SSR-rendered
+      // default label is hardcoded to "watch in SD" rather than computed.
+      let tierIndex = tiers.length - 1;
+
       qualityToggle.addEventListener('click', () => {
         const time = video.currentTime;
         const wasPlaying = !video.paused;
-        isHd = !isHd;
-        video.src = (isHd ? video.dataset.hd : video.dataset.sd) ?? video.src;
+        tierIndex = (tierIndex + 1) % tiers.length;
+        video.src = tiers[tierIndex].src ?? video.src;
         video.addEventListener(
           'loadedmetadata',
           () => {
@@ -590,8 +615,10 @@ const description = project.description?.[lang] ?? LOREM_IPSUM;
           },
           { once: true }
         );
-        qualityToggle.textContent =
-          (isHd ? qualityToggle.dataset.labelSd : qualityToggle.dataset.labelHd) ?? qualityToggle.textContent;
+        // Label always names the tier a click would switch TO next, one
+        // step ahead of wherever we just landed.
+        const next = tiers[(tierIndex + 1) % tiers.length];
+        qualityToggle.textContent = next.label ?? qualityToggle.textContent;
       });
     }
   }

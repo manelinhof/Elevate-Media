@@ -7,10 +7,12 @@
     "loop": "projects/placeholder-one/loop.mp4",
     "reel": {
       "sd": "projects/placeholder-one/reel-720p.mp4",
-      "hd": "projects/placeholder-one/reel-1080p.mp4"
+      "hd": "projects/placeholder-one/reel-1080p.mp4",
+      "uhd": "projects/placeholder-one/reel-2160p.mp4"
     },
     "publishedAt": "2026-01-01",
-    "featured": false
+    "featured": false,
+    "heroLoop": "projects/placeholder-one/loop-hero.mp4"
   },
   {
     "slug": "placeholder-two",
@@ -20,7 +22,8 @@
     "loop": "projects/placeholder-two/loop.mp4",
     "reel": {
       "sd": "projects/placeholder-two/reel-720p.mp4",
-      "hd": "projects/placeholder-two/reel-1080p.mp4"
+      "hd": "projects/placeholder-two/reel-1080p.mp4",
+      "uhd": "projects/placeholder-two/reel-2160p.mp4"
     },
     "publishedAt": "2026-01-01",
     "featured": false
@@ -33,7 +36,8 @@
     "loop": "projects/final/loop.mp4",
     "reel": {
       "sd": "projects/final/reel-720p.mp4",
-      "hd": "projects/final/reel-1080p.mp4"
+      "hd": "projects/final/reel-1080p.mp4",
+      "uhd": "projects/final/reel-2160p.mp4"
     },
     "publishedAt": "2026-07-27",
     "featured": false
@@ -46,7 +50,8 @@
     "loop": "projects/gx013060-stabilized-1-1-prob4/loop.mp4",
     "reel": {
       "sd": "projects/gx013060-stabilized-1-1-prob4/reel-720p.mp4",
-      "hd": "projects/gx013060-stabilized-1-1-prob4/reel-1080p.mp4"
+      "hd": "projects/gx013060-stabilized-1-1-prob4/reel-1080p.mp4",
+      "uhd": "projects/gx013060-stabilized-1-1-prob4/reel-2160p.mp4"
     },
     "publishedAt": "2026-07-27",
     "featured": false
@@ -59,7 +64,8 @@
     "loop": "projects/melro/loop.mp4",
     "reel": {
       "sd": "projects/melro/reel-720p.mp4",
-      "hd": "projects/melro/reel-1080p.mp4"
+      "hd": "projects/melro/reel-1080p.mp4",
+      "uhd": "projects/melro/reel-2160p.mp4"
     },
     "publishedAt": "2026-07-27",
     "featured": false
@@ -72,7 +78,8 @@
     "loop": "projects/atrium-4k-16-9/loop.mp4",
     "reel": {
       "sd": "projects/atrium-4k-16-9/reel-720p.mp4",
-      "hd": "projects/atrium-4k-16-9/reel-1080p.mp4"
+      "hd": "projects/atrium-4k-16-9/reel-1080p.mp4",
+      "uhd": "projects/atrium-4k-16-9/reel-2160p.mp4"
     },
     "publishedAt": "2026-07-27",
     "featured": false

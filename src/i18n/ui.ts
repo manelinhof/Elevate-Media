@@ -19,13 +19,24 @@ export const ui = {
     'nav.home': 'Início',
     'nav.work': 'Trabalhos',
     'nav.about': 'Sobre', // TODO(pt-review)
-    'nav.services': 'Serviços',
     'nav.contact': 'Contacte-nos', // TODO(pt-review)
     'nav.menuOpen': 'Abrir menu', // TODO(pt-review)
     'nav.menuClose': 'Fechar menu', // TODO(pt-review)
     'lang.switch': 'English',
     'theme.toggleLight': 'Ativar modo claro', // TODO(pt-review)
     'theme.toggleDark': 'Ativar modo escuro', // TODO(pt-review)
+
+    'contact.heading': 'Contacte-nos', // TODO(pt-review)
+    'contact.intro': 'Conte-nos sobre o seu projeto e entraremos em contacto brevemente.', // TODO(pt-review)
+    'contact.name': 'Nome',
+    'contact.email': 'Email',
+    'contact.phone': 'Telefone', // TODO(pt-review)
+    'contact.message': 'Mensagem',
+    'contact.submit': 'Enviar', // TODO(pt-review)
+    'contact.sending': 'A enviar…', // TODO(pt-review)
+    'contact.success': 'Mensagem enviada. Entraremos em contacto brevemente.', // TODO(pt-review)
+    'contact.error': 'Algo correu mal. Tente novamente.', // TODO(pt-review)
+    'contact.close': 'Fechar', // TODO(pt-review)
 
     'home.heading': 'Filmagem aérea profissional', // TODO(pt-review)
     'home.tagline': 'Imagens aéreas cinematográficas, em qualquer lugar.', // TODO(pt-review)
@@ -51,6 +62,7 @@ export const ui = {
 
     'work.watchHd': 'Ver em HD',
     'work.watchSd': 'Ver em SD', // TODO(pt-review)
+    'work.watch4k': 'Ver em 4K',
     'work.play': 'Reproduzir', // TODO(pt-review)
     'work.pause': 'Pausar', // TODO(pt-review)
     'work.soundOn': 'Som: Ligado', // TODO(pt-review)
@@ -75,13 +87,24 @@ export const ui = {
     'nav.home': 'Home',
     'nav.work': 'Works',
     'nav.about': 'About',
-    'nav.services': 'Services',
     'nav.contact': 'Get in touch',
     'nav.menuOpen': 'Open menu',
     'nav.menuClose': 'Close menu',
     'lang.switch': 'Português',
     'theme.toggleLight': 'Switch to light mode',
     'theme.toggleDark': 'Switch to dark mode',
+
+    'contact.heading': 'Get in touch',
+    'contact.intro': "Tell us about your project and we'll get back to you shortly.",
+    'contact.name': 'Name',
+    'contact.email': 'Email',
+    'contact.phone': 'Phone',
+    'contact.message': 'Message',
+    'contact.submit': 'Send',
+    'contact.sending': 'Sending…',
+    'contact.success': "Message sent. We'll get back to you shortly.",
+    'contact.error': 'Something went wrong. Please try again.',
+    'contact.close': 'Close',
 
     'home.heading': 'Professional aerial cinematography',
     'home.tagline': 'Cinematic aerial footage, anywhere.',
@@ -107,6 +130,7 @@ export const ui = {
 
     'work.watchHd': 'Watch in HD',
     'work.watchSd': 'Watch in SD',
+    'work.watch4k': 'Watch in 4K',
     'work.play': 'Play',
     'work.pause': 'Pause',
     'work.soundOn': 'Sound: On',

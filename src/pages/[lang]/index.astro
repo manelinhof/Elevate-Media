@@ -49,8 +49,22 @@ const clusterPositions = computeClusterLayout(projects.length);
 </BaseLayout>
 
 <style>
+  /* 100vh minus the sticky header's own rendered height (~76px desktop,
+     ~69px mobile — one shared value is close enough at both), not a bare
+     100vh: #home's box starts right after the header in normal flow, so
+     centering *within* #home alone would center on the viewport-minus-
+     header midpoint, not the true viewport center — the cluster would
+     read as sitting low. Home never scrolls (wheel is dedicated to the
+     spiral, Lenis is stopped — see the script tag below), so if this
+     estimate runs a few px short on some device, the harmless result is
+     a few px of unreachable overflow, not a broken layout. */
   #home {
+    min-height: calc(100vh - 78px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     padding: 3rem 1.5rem;
+    box-sizing: border-box;
   }
   .empty {
     color: var(--muted);
@@ -93,7 +107,7 @@ const clusterPositions = computeClusterLayout(projects.length);
   .grid.cluster {
     display: block;
     position: relative;
-    height: 60vmin;
+    height: 75vmin;
   }
   .grid.cluster .tile-position {
     position: absolute;
