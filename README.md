@@ -73,6 +73,39 @@ already-edited video, then pasting its printed JSON output into
 `src/data/projects.json` and committing. That's the entire publishing
 pipeline — see [scripts/README.md](scripts/README.md).
 
+```mermaid
+flowchart LR
+    A["Finished, edited video\n(--input, local file)"] --> B["scripts/ingest.sh"]
+
+    subgraph FF["ffmpeg (always generated)"]
+        C["poster.jpg\n(1 frame)"]
+        D["loop.mp4\n(silent, 480px, 6s)"]
+        E["reel-720p.mp4\nreel-1080p.mp4\n(SD / HD, with audio)"]
+    end
+
+    subgraph FF4K["ffmpeg (only if source is actually 4K)"]
+        G["reel-2160p.mp4\n(4K reel, with audio)"]
+        H["loop-hero.mp4\n(silent, 2160px, 6s)"]
+    end
+
+    B --> C
+    B --> D
+    B --> E
+    B -->|"ffprobe height >= 2160"| G
+    B -->|"ffprobe height >= 2160"| H
+
+    C & D & E & G & H --> I["wrangler r2 object put\n(site-media bucket)"]
+    I --> J["ingest.sh prints a\nprojects.json entry"]
+    J --> K["Owner pastes it into\nsrc/data/projects.json"]
+    K --> L["git commit + push"]
+    L --> M["Cloudflare Pages\nbuilds + deploys"]
+    M --> N["Site reads projects.json\nat request time, streams\nmedia from R2 (zero egress)"]
+```
+
+Nothing here runs automatically — every arrow from the video file to the
+committed JSON entry is a manual step the owner takes. There's no upload
+form, no admin panel, no webhook.
+
 ## i18n
 
 Every user-facing string lives in `src/i18n/ui.ts` under both a `pt` and an
@@ -87,6 +120,34 @@ Every real page lives under `/[lang]/...` (`pt` or `en`), resolved via
 are their own routes, and `/pt/gallery/[token]` is the client-delivery
 gallery (token + optional passcode, gated by `src/middleware.ts`). Full
 breakdown in [pages/README.md](pages/README.md).
+
+```mermaid
+flowchart TD
+    Root["/"] -->|"redirect to defaultLang"| Home
+
+    subgraph LANG["/pt/... and /en/..."]
+        Home["/\nHome — the spinning\ncluster, nothing else"]
+        Works["/work/\nHero banner + tile grid,\nfiltered by category"]
+        Detail["/work/[slug]\nHero photo → About\n(inverted band) → Video\nplayer → BTS gallery"]
+        About["/about/"]
+        Services["/services/\n(Cal.com embed — open task)"]
+        Gallery["/gallery/[token]\nClient delivery, passcode-gated"]
+    end
+
+    Home -->|"click a tile (closing spiral animation)"| Detail
+    Works -->|"click a tile"| Detail
+    Home -. nav .-> Works
+    Home -. nav .-> About
+    Home -. nav .-> Services
+
+    Gallery -->|every request| MW["src/middleware.ts\ntoken lookup (D1) → passcode\ncheck → signed cookie"]
+
+    Detail -. form submit .-> API1["POST /api/contact\n(validates + logs;\nemail sending not wired up yet)"]
+    Gallery -. passcode form .-> API2["POST /api/gallery/[token]/verify\n(passcode hash check,\nrate-limited, sets cookie)"]
+```
+
+Home is deliberately just the cluster — the practical browsing experience
+(headline, category filters, the plain grid) lives on `/work/`, not Home.
 
 ## Deploying
 
